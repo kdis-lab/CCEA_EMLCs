@@ -42,11 +42,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	private double threshold;
 	
 	/**
-	 * Indicates if the threshold is predicted or a fixed value
-	 */
-	private boolean predictThreshold;
-	
-	/**
 	 *  Array with all base classifiers of the ensemble 
 	 */
 	private MultiLabelLearner [] Ensemble;
@@ -86,13 +81,12 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * @param tableClassifiers Table storing the previously built classifiers
 	 * @param tablePerformanceByLabel Table storing the performances per label
 	 */
-	public EnsembleMLC(byte[][] EnsembleMatrix, MultiLabelLearner baseLearner, int numClassifiers, boolean predictThreshold, Hashtable<String, MultiLabelLearner> tableClassifiers)
+	public EnsembleMLC(byte[][] EnsembleMatrix, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers)
 	{
 		super(baseLearner);
 		
 		this.EnsembleMatrix = EnsembleMatrix;		
 		this.numClassifiers = numClassifiers;
-		this.predictThreshold = predictThreshold;
 		this.tableClassifiers = tableClassifiers;
 	}
 	
@@ -102,7 +96,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		
 		this.EnsembleMatrix = e.EnsembleMatrix;		
 		this.numClassifiers = e.numClassifiers;
-		this.predictThreshold = e.predictThreshold;
 		this.tableClassifiers = e.tableClassifiers;
 	}
 	
@@ -273,11 +266,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 					voteWeights[i][j] = (double)1 / votesPerLabel[j];
 				}
 			}
-
-			if(predictThreshold){
-				threshold = predictUniqueTreshold(trainingData);
-				System.out.println("Threshold: " + threshold);
-			}
 	}
 	
 	@Override
@@ -347,121 +335,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		}
 		System.out.println();
 		System.out.println("Ensemble size: " + EnsembleMatrix.length + " base classifiers");
-	}
-	
-	public double [] predictTresholds(MultiLabelInstances data){
-		double [] thresholds = new double[numLabels];
-		
-		int [] appearances = Utils.calculateAppearances(data);
-		
-		ArrayList<ArrayList<Double>> listConfidencesPerLabel = new ArrayList<ArrayList<Double>>();
-		for(int i=0; i<numLabels; i++){
-			listConfidencesPerLabel.add(new ArrayList<Double>());
-		}
-		
-		try {
-			//Get all confidences
-			for(Instance inst:data.getDataSet()){
-				double [] conf = getConfidences(inst);
-				
-				for(int l=0; l<numLabels; l++){
-					listConfidencesPerLabel.get(l).add(conf[l]);
-				}
-			}
-			
-			//Sort confidences and calculate threshold
-			for(int l=0; l<numLabels; l++){
-				Collections.sort(listConfidencesPerLabel.get(l));
-				Collections.reverse(listConfidencesPerLabel.get(l));
-				
-				if(appearances[l] == 0){
-					thresholds[l] = (1 + listConfidencesPerLabel.get(l).get(0))/2;
-				}
-				else if(appearances[l] == data.getNumInstances()){
-					thresholds[l] = (0 + listConfidencesPerLabel.get(l).get(listConfidencesPerLabel.size()-1))/2;
-				}
-				else{					
-					double conf1 = listConfidencesPerLabel.get(l).get(appearances[l]-1);
-					double conf2 = listConfidencesPerLabel.get(l).get(appearances[l]);
-					
-					thresholds[l] = (conf1+conf2)/2;
-				}
-			}		
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println("Thresholds: " + Arrays.toString(thresholds));
-		return thresholds;
-	}	
-	
-	public double  predictUniqueTreshold(MultiLabelInstances data){
-		Statistics stat = new Statistics();
-		stat.calculateStats(data);
-		double card = stat.cardinality();
-		
-		double predCard = 0;
-		double bestCardDifference = Double.MAX_VALUE;
-		double bestThreshold = -1;
-
-		
-		try{
-			//Calculate cardinality of the predicted outputs for thresholds 0.0, 0.1, ..., 1.0
-			//Store the threshold with the min difference with the dataset's cardinality
-			for(int i=0; i<=10; i++){
-				double thres = i*0.1;
-
-				for(Instance inst:data.getDataSet()){
-					MultiLabelOutput mlo = makePredictionInternal(inst, thres);
-					for(boolean bip:mlo.getBipartition()){
-						if(bip){
-							predCard++;
-						}
-					}
-				}
-				
-				predCard /= data.getNumInstances();
-
-				double difference = Math.abs(card - predCard);
-				if(difference < bestCardDifference){
-					bestCardDifference = difference;
-					bestThreshold = thres;
-				}			
-			}
-			
-			//Calculate cardinality for bestPreviousTreshold +- 0.09
-			double infLimit = bestThreshold - 0.1;
-			double difference;
-			
-			for(int i=1; i<20; i++){
-				double thres = infLimit + i*0.01;	
-				
-				for(Instance inst:data.getDataSet()){
-					MultiLabelOutput mlo = makePredictionInternal(inst, thres);
-					for(boolean bip:mlo.getBipartition()){
-						if(bip){
-							predCard++;
-						}
-					}
-				}
-				
-				predCard /= data.getNumInstances();
-				
-				difference = Math.abs(card - predCard);
-				
-				if(difference < bestCardDifference){
-					bestCardDifference = difference;
-					bestThreshold = thres;
-				}
- 
-			}
-		}
-		catch(Exception e){
-			e.printStackTrace();
-		}
-
-		return bestThreshold;
 	}
 	
 

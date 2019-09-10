@@ -35,16 +35,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 
 	
 	/**
-	 *  Dataset to build the classifiers 
-	 */
-	private MultiLabelInstances datasetTrain;
-	
-	/** 
-	 * Dataset to evaluate the individuals 
-	 */
-	protected MultiLabelInstances datasetValidation;
-	
-	/**
 	 *  Indicates if fitness is to maximize 
 	 */
 	private boolean maximize = true;
@@ -81,46 +71,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	public MLCEvaluator()
 	{
 		super();
-	}
-	
-	
-	/**
-	 * Sets the train dataset
-	 * 
-	 * @param datasetTrain Multi-label train dataset
-	 */
-	public void setDatasetTrain(MultiLabelInstances datasetTrain)
-	{
-		this.datasetTrain = datasetTrain;
-	}
-	
-	/**
-	 * Gets the validation dataset
-	 * 
-	 * @return Multi-label validation dataset
-	 */
-	public MultiLabelInstances getDatasetValidation()
-	{
-		return datasetValidation;
-	}
-	
-	/**
-	 * Gets if a validation dataset is used to evaluate the individuals
-	 * 
-	 * @return true if a validation set is used and false otherwise
-	 */
-	public boolean getUseValidationSet()
-	{
-		return useValidationSet;
-	}
-	
-	/**
-	 * Sets the validation dataset
-	 * 
-	 * @param datasetValidation Multi-label validation dataset
-	 */
-	public void setDatasetValidation(MultiLabelInstances datasetValidation) {
-		this.datasetValidation = datasetValidation;
 	}
 	
 	/**
@@ -169,9 +119,8 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		return COMPARATOR;
 	}	
 	
-	
-	@Override
-	protected void evaluate(IIndividual ind) 
+
+	protected void evaluate(IIndividual ind, MultiLabelInstances train, MultiLabelInstances val) 
 	{
 		// Individual genotype
 		byte[] genotype = ((BinArrayIndividual) ind).getGenotype();
@@ -235,6 +184,13 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		
 		//Set individual fitness
 		ind.setFitness(new SimpleValueFitness(fitness));
+	}
+
+
+	@Override
+	protected void evaluate(IIndividual ind) {
+		System.out.println("Trying to evaluate without training data");
+		System.exit(-1);
 	}
 
 }
