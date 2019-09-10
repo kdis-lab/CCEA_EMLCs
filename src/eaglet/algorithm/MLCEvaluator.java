@@ -176,7 +176,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		byte[] genotype = ((BinArrayIndividual) ind).getGenotype();
 
 		//Genotype to string
-		String s = Arrays.toString(genotype);
+		String s = Integer.toString(subpop) + Arrays.toString(genotype);
 		
 		double fitness = -1;
 		
@@ -191,7 +191,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 			
 			try{
 				//Filter train dataset
-				DatasetTransformation dtT = new DatasetTransformation(datasetTrain, genotype);
+				DatasetTransformation dtT = new DatasetTransformation(datasetTrain[subpop], genotype);
 				dtT.transformDataset();
 				MultiLabelInstances newDatasetTrain = dtT.getModifiedDataset();
 				
@@ -203,7 +203,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 				if(useValidationSet)
 				{
 					//Filter validation dataset
-					DatasetTransformation dtV = new DatasetTransformation(datasetValidation, genotype);
+					DatasetTransformation dtV = new DatasetTransformation(datasetValidation[subpop], genotype);
 					dtV.transformDataset();
 					newDatasetValidation = dtV.getModifiedDataset();
 				}
