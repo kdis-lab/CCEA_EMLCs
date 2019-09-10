@@ -18,7 +18,6 @@ import mulan.data.MultiLabelInstances;
 import mulan.data.Statistics;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.algorithm.classic.MultiSGE;
-import net.sf.jclec.algorithm.classic.SGE;
 import net.sf.jclec.binarray.BinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import mulan.classifier.MultiLabelLearner;
@@ -381,6 +380,8 @@ public class MLCAlgorithm extends MultiSGE {
 			((MLCEvaluator) evaluator).setTableClassifiers(tableClassifiers);
 			((MLCEvaluator) evaluator).setLearner(learner);
 			((MLCEvaluator) evaluator).setUseValidationSet(useValidationSet);
+			((MLCEvaluator) evaluator).setDatasetTrain(datasetTrain);
+			((MLCEvaluator) evaluator).setDatasetValidation(datasetValidation);
 			
 
 			// Set genetic operator settings
@@ -406,25 +407,25 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		phiMatrix = new double[numSubpop][numberLabels][numberLabels];
 		
-		for(int i=0; i<numSubpop; i++) {
+		for(int p=0; p<numSubpop; p++) {
 			Statistics s = new Statistics();
 			
 			if((provider.getClass().toString().toLowerCase().contains("phi")) || (mutator.getDecorated().getClass().toString().toLowerCase().contains("phi"))){
 				
 				try {
-					phiMatrix[i] = s.calculatePhi(getDatasetTrain(i));
+					phiMatrix[p] = s.calculatePhi(getDatasetTrain(p));
 					
-					for(int j=0; j<numberLabels; j++){
-						for(int k=0; k<numberLabels; k++)
-							if(Double.isNaN(phiMatrix[i][j][k])){
-								phiMatrix[i][j][k] = 0;
+					for(int i=0; i<numberLabels; i++){
+						for(int j=0; j<numberLabels; j++)
+							if(Double.isNaN(phiMatrix[p][i][j])){
+								phiMatrix[p][i][j] = 0;
 							}
 					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 				
-				System.out.println("Phi matrix number " + i);
+				System.out.println("Phi matrix number " + p);
 				s.printPhiCorrelations();
 				System.out.println();
 			}
@@ -432,13 +433,13 @@ public class MLCAlgorithm extends MultiSGE {
 					
 			//Pass appearances to provider in case it needs
 			if(provider.getClass().toString().toLowerCase().contains("frequency")){
-				((FrequencyBasedIndividualCreator) provider).setAppearances(Utils.calculateAppearances(getDatasetTrain(i)));
+				((FrequencyBasedIndividualCreator) provider).setAppearances(Utils.calculateAppearances(getDatasetTrain(p)));
 			}
 
 
 			if(weightVotesByFrequency){
 				//Calculate expected voted based on frequency; ensuring a minimum of 5 votes per label
-				weightsPerLabel = Utils.calculateFrequencies(datasetTrain[i]);
+				weightsPerLabel = Utils.calculateFrequencies(datasetTrain[p]);
 				expectedVotesPerLabel = Utils.calculateExpectedVotes(weightsPerLabel, (int)Math.round(3.33*numberLabels)*maxNumLabelsClassifier, numClassifiers, 5, randgen.choose(100));
 			}
 			else{
@@ -455,9 +456,10 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			/* super.doInit(); */
 			// Create individuals
-			bset.set(i, provider.provide(subpopSize));
+			bset.set(p, provider.provide(subpopSize));
 			// Evaluate individuals
-			evaluator.evaluate(bset.get(i));
+			((MLCEvaluator)evaluator).setSubpopID(p);
+			((MLCEvaluator)evaluator).evaluate(bset.get(p));
 			// Do Control
 			doControl();
 		}

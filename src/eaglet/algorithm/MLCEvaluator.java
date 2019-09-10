@@ -35,6 +35,16 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 
 	
 	/**
+	 *  Dataset to build the base classifiers 
+	 */
+	private MultiLabelInstances[] datasetTrain;
+	
+	/**
+	 *  Dataset to evaluate the individuals 
+	 */
+	private MultiLabelInstances[] datasetValidation;
+	
+	/**
 	 *  Indicates if fitness is to maximize 
 	 */
 	private boolean maximize = true;
@@ -64,6 +74,11 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	 */
 	private boolean useValidationSet;
 	
+	/**
+	 * Identifier of subpopulation
+	 */
+	private int p = -1;
+	
 	
 	/**
 	 * Constructor
@@ -71,6 +86,38 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	public MLCEvaluator()
 	{
 		super();
+	}
+	
+	
+	/**
+	 * Sets the train dataset
+	 * 
+	 * @param datasetTrain Multi-label train dataset
+	 */
+	public void setDatasetTrain(MultiLabelInstances[] datasetTrain)
+	{
+		this.datasetTrain = datasetTrain;
+	}
+	
+	
+	/**
+	 * Gets if a validation dataset is used to evaluate the individuals
+	 * 
+	 * @return true if a validation set is used and false otherwise
+	 */
+	public boolean getUseValidationSet()
+	{
+		return useValidationSet;
+	}
+	
+	/**
+	 * Sets the validation dataset
+	 * 
+	 * @param datasetValidation Multi-label validation dataset
+	 */
+	public void setDatasetValidation(MultiLabelInstances[] datasetValidation)
+	{
+		this.datasetValidation = datasetValidation;
 	}
 	
 	/**
@@ -113,6 +160,9 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		this.useValidationSet = isValidationSet;
 	}
 
+	public void setSubpopID(int p) {
+		this.p = p;
+	}
 	
 	@Override
 	public Comparator<IFitness> getComparator() {
@@ -120,7 +170,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	}	
 	
 
-	protected void evaluate(IIndividual ind, MultiLabelInstances train, MultiLabelInstances val) 
+	protected void evaluate(IIndividual ind, int subpop) 
 	{
 		// Individual genotype
 		byte[] genotype = ((BinArrayIndividual) ind).getGenotype();
@@ -189,8 +239,16 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 
 	@Override
 	protected void evaluate(IIndividual ind) {
-		System.out.println("Trying to evaluate without training data");
-		System.exit(-1);
+		// TODO Auto-generated method stub
+		if(p < 0) {
+			System.out.println("Method not implemented.");
+			System.out.println("\tIdentifier of subpopulation should be passed to the evaluator.");
+			System.exit(-1);
+		}
+		else {
+			evaluate(ind, p);
+		}
+		
 	}
 
 }
