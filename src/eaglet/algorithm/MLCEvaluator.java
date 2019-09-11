@@ -75,11 +75,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	 */
 	private boolean useValidationSet;
 	
-	/**
-	 * Identifier of subpopulation
-	 */
-	private int p = -1;
-	
 	
 	/**
 	 * Constructor
@@ -161,23 +156,21 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		this.useValidationSet = isValidationSet;
 	}
 
-	public void setSubpopID(int p) {
-		this.p = p;
-	}
-	
 	@Override
 	public Comparator<IFitness> getComparator() {
 		return COMPARATOR;
 	}	
 	
 
-	protected void evaluate(IIndividual ind, int subpop) 
+	protected void evaluate(IIndividual ind) 
 	{
 		// Individual genotype
 		byte[] genotype = ((MultipBinArrayIndividual) ind).getGenotype();
+		
+		int p = ((MultipBinArrayIndividual) ind).getSubpop();
 
 		//Genotype to string
-		String s = subpop + Arrays.toString(genotype);
+		String s = ((MultipBinArrayIndividual) ind).toString();
 		//System.out.println("--" + s);
 		
 		double fitness = -1;
@@ -193,7 +186,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 			
 			try{
 				//Filter train dataset
-				DatasetTransformation dtT = new DatasetTransformation(datasetTrain[subpop], genotype);
+				DatasetTransformation dtT = new DatasetTransformation(datasetTrain[p], genotype);
 				dtT.transformDataset();
 				MultiLabelInstances newDatasetTrain = dtT.getModifiedDataset();
 				
@@ -205,7 +198,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 				if(useValidationSet)
 				{
 					//Filter validation dataset
-					DatasetTransformation dtV = new DatasetTransformation(datasetValidation[subpop], genotype);
+					DatasetTransformation dtV = new DatasetTransformation(datasetValidation[p], genotype);
 					dtV.transformDataset();
 					newDatasetValidation = dtV.getModifiedDataset();
 				}
@@ -226,7 +219,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	     	  	//Put fitness and built classifier in tables
 	     	  	tableFitness.put(s, fitness);
 	     	  	tableClassifiers.put(s, mll.makeCopy());
-	     	  	System.out.println("--" + s);
+	     	  	//System.out.println("--" + s);
 				
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
@@ -237,21 +230,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		
 		//Set individual fitness
 		ind.setFitness(new SimpleValueFitness(fitness));
-	}
-
-
-	@Override
-	protected void evaluate(IIndividual ind) {
-		// TODO Auto-generated method stub
-		if(p < 0) {
-			System.out.println("Method not implemented.");
-			System.out.println("\tIdentifier of subpopulation should be passed to the evaluator.");
-			System.exit(-1);
-		}
-		else {
-			evaluate(ind, p);
-		}
-		
 	}
 
 }
