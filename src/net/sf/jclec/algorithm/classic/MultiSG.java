@@ -388,11 +388,8 @@ public class MultiSG extends MultiPopulationAlgorithm
 		pset = new ArrayList<List<IIndividual>>(numSubpop);
 		//pset = parentsSelector.select(bset);
 		for(int p=0; p<numSubpop; p++) {
-			System.out.println(bset.get(p).size());
-			System.out.println(pset.size());
 			pset.add(p, parentsSelector.select(bset.get(p), subpopSize));
 		}
-		System.out.println("pset " + pset.size());
 		
 		
 		//for(int i=0; i<numSubpop; i++) {

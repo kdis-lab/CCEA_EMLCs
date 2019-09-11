@@ -18,7 +18,7 @@ import mulan.data.MultiLabelInstances;
 import mulan.data.Statistics;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.algorithm.classic.MultiSGE;
-import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset;
@@ -269,7 +269,7 @@ public class MLCAlgorithm extends MultiSGE {
 	 */
 	private void configureEagletDefaults(Configuration configuration) {
 		//Species
-		configuration.setProperty("species[@type]", "net.sf.jclec.binarray.BinArrayIndividualSpecies");
+		configuration.setProperty("species[@type]", "net.sf.jclec.binarray.MultipBinArrayIndividualSpecies");
 		configuration.setProperty("species[@genotype-length]", "1");
 		
 		//Validation set (only if not provided)
@@ -475,8 +475,10 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			/* super.doInit(); */
 			// Create individuals
+			((EagletIndividualCreator) provider).setSubpopId(p);
 			List<IIndividual> prov = provider.provide(subpopSize);
 			bset.add(p, prov);
+			System.out.println(bset.get(p).get(0).toString());
 			// Evaluate individuals
 			((MLCEvaluator)evaluator).setSubpopID(p);
 			((MLCEvaluator)evaluator).evaluate(bset.get(p));
@@ -494,14 +496,17 @@ public class MLCAlgorithm extends MultiSGE {
 			for(int p=0; p<numSubpop; p++) {
 				//Join all bset and cset individuals in cset
 				System.out.println("p: " + p);
-				System.out.println("bset.get(p) " + bset.get(p).size());
-				System.out.println("cset.get(p) " + cset.get(p).size());
+				//System.out.println("bset.get(p) " + bset.get(p).size());
+				//System.out.println("cset.get(p) " + cset.get(p).size());
 				cset.get(p).addAll(bset.get(p));
-				System.out.println("cset1.get(p) " + cset.get(p).size());
+				//System.out.println("cset1.get(p) " + cset.get(p).size());
 				cset.set(p, Utils.removeDuplicated(cset.get(p)));
-				System.out.println("cset2.get(p) " + cset.get(p).size());
+				//System.out.println("cset2.get(p) " + cset.get(p).size());
 				
-				bset.set(p, bettersSelector.select(cset.get(p), subpopSize));
+				//List<IIndividual> ensembleMembers = ;
+				
+				//bset.set(p, bettersSelector.select(cset.get(p), subpopSize));
+				bset.set(p, selectEnsembleMembers(cset.get(p), subpopSize, expectedVotesPerLabel, betaMemberSelection));
 				
 				/*
 				List<IIndividual> ensembleMembers = null;
@@ -561,6 +566,12 @@ public class MLCAlgorithm extends MultiSGE {
 		System.out.println("------------------------");
 		System.out.println("--- Generation " + generation + " ---");
 		System.out.println("------------------------");
+		
+		/*
+		if(generation % 2 == 0) {
+			List<IIndividual> allSet
+		}
+		*/
 		
 		if(generation >= maxOfGenerations) //generation >= maxOfGenerations
 		{
@@ -667,7 +678,7 @@ public class MLCAlgorithm extends MultiSGE {
 		byte [][] EnsembleMatrix = new byte[n][numberLabels];
 		
 		for(int i=0; i<n; i++){
-			System.arraycopy(((BinArrayIndividual)members.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
+			System.arraycopy(((MultipBinArrayIndividual)members.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
 		}
 		
 		EnsembleMLC ensemble = new EnsembleMLC(EnsembleMatrix, learner, numClassifiers, tableClassifiers, p);
@@ -697,9 +708,9 @@ public class MLCAlgorithm extends MultiSGE {
 		indsCopy = bettersSelector.select(indsCopy, indsCopy.size());
 		
 		//Add first individual to ensemble members and remove from list
-		System.out.println("Best individual: " + Arrays.toString(((BinArrayIndividual)indsCopy.get(0)).getGenotype()) + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
+		System.out.println("Best individual: " + Arrays.toString(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype()) + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
 		members.add(indsCopy.get(0));
-		System.arraycopy(((BinArrayIndividual)indsCopy.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
+		System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
 		indsCopy.remove(0);
 		
 		//For each remaining individual, compute its new fitness as a combination of its fitness and the distance to the ensemble
@@ -713,7 +724,7 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			//Update fitness for all individuals
 			for(int i=0; i<indsCopy.size(); i++){
-				updatedFitnesses[i] = beta * distanceToEnsemble(((BinArrayIndividual)indsCopy.get(i)).getGenotype(), EnsembleMatrix, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
+				updatedFitnesses[i] = beta * distanceToEnsemble(((MultipBinArrayIndividual)indsCopy.get(i)).getGenotype(), EnsembleMatrix, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
 			}
 			
 			//Get best individual with updated fitness
@@ -723,7 +734,7 @@ public class MLCAlgorithm extends MultiSGE {
 			members.add(indsCopy.get(maxIndex));
 			//Update expectedVotesCopy to then recalculate weights (keep a minumum of 1)
 			IIndividual currInd = indsCopy.get(maxIndex);
-			byte [] currGen = ((BinArrayIndividual)currInd).getGenotype();
+			byte [] currGen = ((MultipBinArrayIndividual)currInd).getGenotype();
 			for(int i=0; i<currGen.length; i++){
 				if(currGen[i] == 1){
 					if(expectedVotesCopy[i] > 1){
@@ -732,7 +743,7 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 			}
 			
-			System.arraycopy(((BinArrayIndividual)indsCopy.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[currentEnsembleSize], 0, numberLabels);
+			System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[currentEnsembleSize], 0, numberLabels);
 			//Remove individual from list
 			indsCopy.remove(maxIndex);
 						
@@ -766,7 +777,7 @@ public class MLCAlgorithm extends MultiSGE {
 				double [] candidatesFitness = new double[candidates.size()];
 				
 				for(int i=0; i<candidates.size(); i++){
-					candidatesFitness[i] = beta * distanceToEnsemble(((BinArrayIndividual)candidates.get(i)).getGenotype(), individualsToEnsembleMatrix(members), members.size(), weights) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
+					candidatesFitness[i] = beta * distanceToEnsemble(((MultipBinArrayIndividual)candidates.get(i)).getGenotype(), individualsToEnsembleMatrix(members), members.size(), weights) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
 				}
 				
 				double maxFitness = candidatesFitness[0];
@@ -833,7 +844,7 @@ public class MLCAlgorithm extends MultiSGE {
 		List<IIndividual> candidates = new ArrayList<IIndividual>();
 		
 		for(int i=0; i<individuals.size(); i++){
-			if(((BinArrayIndividual)individuals.get(i)).getGenotype()[label] == 1){
+			if(((MultipBinArrayIndividual)individuals.get(i)).getGenotype()[label] == 1){
 				candidates.add(individuals.get(i));
 			}
 		}
@@ -858,7 +869,7 @@ public class MLCAlgorithm extends MultiSGE {
 	private List<IIndividual> getIndividualsWithLabel(List<IIndividual> list, int label){
 		List<IIndividual> candidates = new ArrayList<IIndividual>();
 		for(int i=0; i<list.size(); i++){
-			BinArrayIndividual ind = (BinArrayIndividual)list.get(i);
+			MultipBinArrayIndividual ind = (MultipBinArrayIndividual)list.get(i);
 			byte [] genotype = ind.getGenotype();
 			if(genotype[label] == 1){
 				candidates.add(list.get(i));
@@ -871,7 +882,7 @@ public class MLCAlgorithm extends MultiSGE {
 	private boolean hasCriticalLabel(IIndividual ind, List<IIndividual> list){
 		int [] votesPerLabel = Utils.calculateVotesPerLabel(individualsToEnsembleMatrix(list));
 		
-		byte [] genotype = ((BinArrayIndividual)ind).getGenotype();
+		byte [] genotype = ((MultipBinArrayIndividual)ind).getGenotype();
 
 		for(int i=0; i<votesPerLabel.length; i++){
 			if(genotype[i] == 1){
@@ -901,7 +912,7 @@ public class MLCAlgorithm extends MultiSGE {
 		byte [][] EnsembleMatrix = new byte[individuals.size()][numberLabels];
 		
 		for(int i=0; i<individuals.size(); i++){
-			System.arraycopy(((BinArrayIndividual)individuals.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
+			System.arraycopy(((MultipBinArrayIndividual)individuals.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
 		}
 		
 		return EnsembleMatrix;

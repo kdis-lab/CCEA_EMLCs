@@ -5,7 +5,7 @@ import java.util.List;
 
 import eaglet.utils.Utils;
 import net.sf.jclec.IIndividual;
-import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
 /**
  * Class implementing the random generation of individuals
@@ -39,11 +39,11 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 		// Prepare process
 		prepareCreation();
 		// Provide individuals
-		BinArrayIndividual ind;
+		MultipBinArrayIndividual ind;
 		boolean exist;
 		for (createdCounter=0; createdCounter<numberOfIndividuals; createdCounter++) {
 			do{
-				ind = species.createIndividual(createGenotype());
+				ind = species.createIndividual(createGenotype(), p);
 				exist = Utils.exists(ind, createdBuffer);
 			}while(exist);
 

@@ -17,6 +17,7 @@ import net.sf.jclec.IFitness;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.base.AbstractParallelEvaluator;
 import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.fitness.ValueFitnessComparator;
 
@@ -173,11 +174,11 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	protected void evaluate(IIndividual ind, int subpop) 
 	{
 		// Individual genotype
-		byte[] genotype = ((BinArrayIndividual) ind).getGenotype();
+		byte[] genotype = ((MultipBinArrayIndividual) ind).getGenotype();
 
 		//Genotype to string
 		String s = subpop + Arrays.toString(genotype);
-		System.out.println("--" + s);
+		//System.out.println("--" + s);
 		
 		double fitness = -1;
 		

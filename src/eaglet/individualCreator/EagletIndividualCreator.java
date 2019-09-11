@@ -1,8 +1,8 @@
 package eaglet.individualCreator;
 
 import eaglet.utils.Utils;
-import net.sf.jclec.binarray.BinArrayCreator;
-import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayCreator;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
 /**
  * Class implementing an abstract individual creator class which the rest will extend
@@ -10,7 +10,7 @@ import net.sf.jclec.binarray.BinArrayIndividual;
  * @author Jose M. Moyano
  *
  */
-public abstract class EagletIndividualCreator extends BinArrayCreator {
+public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 
 	/**
 	 * Serialization constant
@@ -104,9 +104,9 @@ public abstract class EagletIndividualCreator extends BinArrayCreator {
 		
 		//System.out.println("createdBuffer.size(): " + createdBuffer.size());
 		
-		BinArrayIndividual ind;
+		MultipBinArrayIndividual ind;
 		while(createdBuffer.size() < numberOfIndividuals){
-			ind = species.createIndividual(createRandomGenotype());
+			ind = species.createIndividual(createRandomGenotype(), p);
 			if(!Utils.exists(ind, createdBuffer)){
 				createdBuffer.add(ind);
 			}

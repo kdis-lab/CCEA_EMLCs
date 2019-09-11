@@ -8,6 +8,7 @@ import java.util.Random;
 import mulan.data.MultiLabelInstances;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import weka.core.Instance;
 
 public class Utils {
@@ -448,7 +449,7 @@ public class Utils {
 	 */
 	public static boolean exists(IIndividual refInd, List<IIndividual> list){
 		for(IIndividual ind : list){
-			if(hammingDistance(((BinArrayIndividual)refInd).getGenotype(), ((BinArrayIndividual)ind).getGenotype()) == 0){
+			if(hammingDistance(((MultipBinArrayIndividual)refInd).getGenotype(), ((MultipBinArrayIndividual)ind).getGenotype()) == 0){
 				return true;
 			}
 		}

@@ -50,7 +50,7 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 	 */
 	protected void createNext(byte [] genotype)
 	{
-		createdBuffer.add(species.createIndividual(genotype));
+		createdBuffer.add(species.createIndividual(genotype, p));
 	}
 
 	@Override
