@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.List;
 
 import eaglet.utils.Utils;
 import weka.core.Instance;
@@ -16,6 +17,8 @@ import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.MultiLabelMetaLearner;
 import mulan.data.MultiLabelInstances;
 import mulan.data.Statistics;
+import net.sf.jclec.IIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
 /**
  * Class implementing the MLC Ensemble
@@ -49,7 +52,12 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	/**
 	 *  Binary matrix identifying the ensemble 
 	 */
-	private byte [][] EnsembleMatrix;
+	//private byte [][] EnsembleMatrix;
+	
+	/**
+	 * List of individuals identifying the ensemble
+	 */
+	private List<IIndividual> EnsembleInds;
 	
 	/**
 	 *  Table that stores all base classifiers that have been built 
@@ -72,11 +80,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	MultiLabelInstances validationSet;
 	
 	/**
-	 * Identifier of subpopulation
-	 */
-	int p;
-	
-	/**
 	 * Constructor 
 	 * 
 	 * @param EnsembleMatrix Matrix identifying the base classifiers of the ensemble
@@ -86,21 +89,20 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * @param tableClassifiers Table storing the previously built classifiers
 	 * @param tablePerformanceByLabel Table storing the performances per label
 	 */
-	public EnsembleMLC(byte[][] EnsembleMatrix, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers, int p)
+	public EnsembleMLC(List<IIndividual> EnsembleInds, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers)
 	{
 		super(baseLearner);
 		
-		this.EnsembleMatrix = EnsembleMatrix;		
+		this.EnsembleInds = EnsembleInds;		
 		this.numClassifiers = numClassifiers;
 		this.tableClassifiers = tableClassifiers;
-		this.p = p;
 	}
 	
 	public EnsembleMLC(EnsembleMLC e)
 	{
 		super(e.baseLearner);
 		
-		this.EnsembleMatrix = e.EnsembleMatrix;		
+		this.EnsembleInds = e.EnsembleInds;		
 		this.numClassifiers = e.numClassifiers;
 		this.tableClassifiers = e.tableClassifiers;
 	}
@@ -139,9 +141,19 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * 
 	 * @return Ensemble matrix
 	 */
-	public byte[][] getEnsembleMatrix()
+	public List<IIndividual> getEnsembleInds()
 	{
-		return EnsembleMatrix;
+		return EnsembleInds;
+	}
+	
+	public byte[][] getEnsembleMatrix(){
+		byte [][] mat = new byte[numClassifiers][numLabels];
+		
+		for(int i=0; i<numClassifiers;i++) {
+			mat[i] = ((MultipBinArrayIndividual)EnsembleInds.get(i)).getGenotype();
+		}
+		
+		return mat;
 	}
 		
 	/**
@@ -152,6 +164,8 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	public int[] calculateVotesPerLabel()
 	{	
 		votesPerLabel = new int[numLabels];
+		
+		byte [][] EnsembleMatrix = getEnsembleMatrix();
 		
 		for(int i=0; i<EnsembleMatrix.length; i++)
 		{
@@ -190,15 +204,21 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		str+="\nnumLabels: "+numLabels;
 		str+="\nnumClassifiers:"+numClassifiers;
 		str+="\nEnsembleMatrix:\n";		
+		
+		
 		for(int model=0; model<numClassifiers; model++)
 		{	
+			str += ((MultipBinArrayIndividual)EnsembleInds).toString();
+			
+			/*byte [] row = ((MultipBinArrayIndividual)EnsembleInds).getGenotype();
 			for (int label=0; label<numLabels; label++)
 			{	
-				if(EnsembleMatrix[model][label]==0)
+				if(row[label]==0)
 				    str+="0 ";
 				else
 					str+="1 ";
 			}
+			*/
 			str+="\n";
 		}
 		return str;
@@ -262,7 +282,8 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 			for(int i = 0; i < numClassifiers; i++)
 			{
 				//Get classifier from table
-				String s = p + Arrays.toString(EnsembleMatrix[i]);
+				//String s = p + Arrays.toString(EnsembleMatrix[i]);
+				String s = EnsembleInds.get(i).toString();
 				System.out.println("---" + s);
 				Ensemble[i] = tableClassifiers.get(s);
 				System.out.println("\t\t" + Ensemble[i]);
@@ -294,6 +315,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	    double[] sumConf = new double[numLabels];
 	    double[] sumVotes = new double[numLabels];
 	    
+	    byte[][] EnsembleMatrix = getEnsembleMatrix();
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {
@@ -313,7 +335,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 				System.exit(-1);
 			}
 			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instance);
-			        	
+			        			
 			for(int label=0, k=0; label < numLabels; label++)
 			{  
 				if(EnsembleMatrix[model][label]==1)
@@ -363,12 +385,15 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 */
 	public void printEnsemble()
 	{
+		/*
 		for(int i=0; i<EnsembleMatrix.length; i++)
 		{
 			System.out.println(Arrays.toString(EnsembleMatrix[i]));
 		}
 		System.out.println();
 		System.out.println("Ensemble size: " + EnsembleMatrix.length + " base classifiers");
+		*/
+		System.out.println(this.toString());
 	}
 	
 
@@ -377,6 +402,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	{				
 	    double[] sumConf = new double[numLabels];
 	    
+	    byte[][] EnsembleMatrix = getEnsembleMatrix();
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {
@@ -403,6 +429,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	    double[] sumConf = new double[numLabels];
 	    double[] sumVotes = new double[numLabels];
 	    
+	    byte[][] EnsembleMatrix = getEnsembleMatrix();
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {

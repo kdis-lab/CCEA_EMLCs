@@ -226,6 +226,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	     	  	//Put fitness and built classifier in tables
 	     	  	tableFitness.put(s, fitness);
 	     	  	tableClassifiers.put(s, mll.makeCopy());
+	     	  	System.out.println("--" + s);
 				
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();

@@ -567,11 +567,30 @@ public class MLCAlgorithm extends MultiSGE {
 		System.out.println("--- Generation " + generation + " ---");
 		System.out.println("------------------------");
 		
-		/*
-		if(generation % 2 == 0) {
-			List<IIndividual> allSet
+		
+		if(generation % 2 == 0 && generation > 0) {
+			List<IIndividual> allInds = new ArrayList<IIndividual>();
+			for(int p=0; p<numSubpop; p++) {
+				allInds.addAll(bset.get(p));
+			}
+			
+			List<IIndividual> ensembleMembers = null;
+			try {
+				ensembleMembers = selectEnsembleMembers(allInds, numClassifiers, expectedVotesPerLabel, betaMemberSelection);
+				EnsembleMLC currentEnsemble = generateEnsemble(ensembleMembers, numClassifiers);
+				currentEnsemble.setValidationSet(fullDatasetTrain);
+			
+				currentEnsemble.build(fullDatasetTrain);
+				
+				currentEnsemble.printEnsemble();
+				System.out.println();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			
 		}
-		*/
+		
 		
 		if(generation >= maxOfGenerations) //generation >= maxOfGenerations
 		{
@@ -674,14 +693,14 @@ public class MLCAlgorithm extends MultiSGE {
 		return datasets;
 	}
 	
-	private EnsembleMLC generateEnsemble(List<IIndividual> members, int n, int p){
-		byte [][] EnsembleMatrix = new byte[n][numberLabels];
+	private EnsembleMLC generateEnsemble(List<IIndividual> members, int n){
+		/*byte [][] EnsembleMatrix = new byte[n][numberLabels];
 		
 		for(int i=0; i<n; i++){
 			System.arraycopy(((MultipBinArrayIndividual)members.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
-		}
+		}*/
 		
-		EnsembleMLC ensemble = new EnsembleMLC(EnsembleMatrix, learner, numClassifiers, tableClassifiers, p);
+		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers);
 		ensemble.setThreshold(predictionThreshold);
 		return ensemble;
 		
@@ -708,7 +727,7 @@ public class MLCAlgorithm extends MultiSGE {
 		indsCopy = bettersSelector.select(indsCopy, indsCopy.size());
 		
 		//Add first individual to ensemble members and remove from list
-		System.out.println("Best individual: " + Arrays.toString(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype()) + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
+		System.out.println("Best individual: " + ((MultipBinArrayIndividual)indsCopy.get(0)).toString() + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
 		members.add(indsCopy.get(0));
 		System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
 		indsCopy.remove(0);
