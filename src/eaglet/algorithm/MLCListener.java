@@ -52,7 +52,7 @@ import net.sf.jclec.IAlgorithm;
 import net.sf.jclec.IAlgorithmListener;
 import net.sf.jclec.IConfigure;
 import net.sf.jclec.IIndividual;
-import net.sf.jclec.algorithm.PopulationAlgorithm;
+import net.sf.jclec.algorithm.MultiPopulationAlgorithm;
 import net.sf.jclec.fitness.SimpleValueFitness;
 
 /**
@@ -197,7 +197,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 		doDataReport((MLCAlgorithm) event.getAlgorithm());
 		doClassificationReport((MLCAlgorithm) event.getAlgorithm());
 		
-		closeReportFiles();
+		closeReportFiles((MLCAlgorithm) event.getAlgorithm());
 	}
 	
 	@Override
@@ -234,97 +234,105 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	protected void doIterationReport(IAlgorithm algorithm)
 	{
 		// Population individuals
-		List<IIndividual> inds = ((PopulationAlgorithm) algorithm).getInhabitants();
+		List<List<IIndividual>> inds = ((MultiPopulationAlgorithm) algorithm).getMultiInhabitants();
+		int nSubpop = ((MultiPopulationAlgorithm) algorithm).getNumSubpop();
 		// Actual generation
-		int generation = ((PopulationAlgorithm) algorithm).getGeneration();
+		int generation = ((MultiPopulationAlgorithm) algorithm).getGeneration();
 		
 		if (generation % reportFrequency == 0) 
 		{
-			String reportFilename = String.format("Iteration_%d.rep", generation);
-			
-			try {
-				// Report file
-				File reportFile = new File(reportDirectory, reportFilename);
-				File bestIndFile = new File("reports", bestIndFilename);
-				File avgIndFile = new File("reports", avgIndFilename);
-				File bestEnsembleFile = new File("reports", bestEnsembleFilename);
-				File iterEnsembleFile = new File("reports", iterEnsembleFilename);
-				
-				double avgFitness = 0.0;
-				
-				// Report writer
-				FileWriter reportWriter = null;
-				FileWriter bestIndWriter = null;
-				FileWriter avgIndWriter = null;
-				FileWriter bestEnsembleWriter = null;
-				FileWriter iterEnsembleWriter = null;
+			for(int p=0; p<nSubpop; p++) {
+				String reportFilename = String.format("Iteration_%d.rep_%d", generation, p);
 				
 				try {
-					reportFile.createNewFile();
-					reportWriter = new FileWriter (reportFile);
-					bestIndWriter = new FileWriter(bestIndFile, true);
-					avgIndWriter = new FileWriter(avgIndFile, true);
-					bestEnsembleWriter = new FileWriter(bestEnsembleFile, true);
-					iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
+					// Report file
+					File reportFile = new File(reportDirectory, reportFilename);
+					File bestIndFile = new File("reports", bestIndFilename + "_" + p);
+					File avgIndFile = new File("reports", avgIndFilename + "_" + p);
+					File bestEnsembleFile = new File("reports", bestEnsembleFilename + "_" + p);
+					File iterEnsembleFile = new File("reports", iterEnsembleFilename + "_" + p);
+					
+					double avgFitness = 0.0;
+					
+					// Report writer
+					FileWriter reportWriter = null;
+					FileWriter bestIndWriter = null;
+					FileWriter avgIndWriter = null;
+					FileWriter bestEnsembleWriter = null;
+					FileWriter iterEnsembleWriter = null;
+					
+					try {
+						reportFile.createNewFile();
+						reportWriter = new FileWriter (reportFile);
+						bestIndWriter = new FileWriter(bestIndFile, true);
+						avgIndWriter = new FileWriter(avgIndFile, true);
+						bestEnsembleWriter = new FileWriter(bestEnsembleFile, true);
+						iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
+					}
+					catch(IOException e3){
+						e3.printStackTrace();
+					}
+					
+					StringBuffer buffer = new StringBuffer();
+					
+					// Prints individuals
+					for(int i=0; i<inds.get(p).size(); i++)
+					{
+						buffer.append(inds.get(p).get(i) + System.getProperty("line.separator")); 
+						avgFitness += ((SimpleValueFitness)inds.get(p).get(i).getFitness()).getValue();
+					}
+					avgFitness /= inds.get(p).size();
+					
+					reportWriter.append(buffer.toString());
+					reportWriter.close();
+					
+					bestIndWriter.append(((SimpleValueFitness)inds.get(p).get(0).getFitness()).getValue() + "; ");
+					bestIndWriter.close();
+					avgIndWriter.append(avgFitness + "; ");
+					avgIndWriter.close();
+					bestEnsembleWriter.append(((MLCAlgorithm)algorithm).bestFitness + "; ");
+					bestEnsembleWriter.close();
+					iterEnsembleWriter.append(((MLCAlgorithm)algorithm).iterEnsembleFitness + "; ");
+					iterEnsembleWriter.close();
+				} 
+				catch (IOException e) {
+					throw new RuntimeException("Error writing report file");
 				}
-				catch(IOException e3){
-					e3.printStackTrace();
-				}
-				
-				StringBuffer buffer = new StringBuffer();
-				
-				// Prints individuals
-				for(int i=0; i<inds.size(); i++)
-				{
-					buffer.append(inds.get(i) + System.getProperty("line.separator")); 
-					avgFitness += ((SimpleValueFitness)inds.get(i).getFitness()).getValue();
-				}
-				avgFitness /= inds.size();
-				
-				reportWriter.append(buffer.toString());
-				reportWriter.close();
-				
-				bestIndWriter.append(((SimpleValueFitness)inds.get(0).getFitness()).getValue() + "; ");
-				bestIndWriter.close();
-				avgIndWriter.append(avgFitness + "; ");
-				avgIndWriter.close();
-				bestEnsembleWriter.append(((MLCAlgorithm)algorithm).bestFitness + "; ");
-				bestEnsembleWriter.close();
-				iterEnsembleWriter.append(((MLCAlgorithm)algorithm).iterEnsembleFitness + "; ");
-				iterEnsembleWriter.close();
-			} 
-			catch (IOException e) {
-				throw new RuntimeException("Error writing report file");
 			}
 		}
 	}
 	
-	protected void closeReportFiles() {
+	protected void closeReportFiles(MLCAlgorithm algorithm) {
 		try {
-			File bestIndFile = new File("reports", bestIndFilename);
-			File avgIndFile = new File("reports", avgIndFilename);
-			File bestEnsembleFile = new File("reports", bestEnsembleFilename);
-			File iterEnsembleFile = new File("reports", iterEnsembleFilename);
+			int nSubpop = algorithm.getNumSubpop();
 			
-			// Report writer
-			FileWriter bestIndWriter = null;
-			FileWriter avgIndWriter = null;
-			FileWriter bestEnsembleWriter = null;
-			FileWriter iterEnsembleWriter = null;
+			for(int p=0; p<nSubpop; p++) {
+				File bestIndFile = new File("reports", bestIndFilename + "_" + p);
+				File avgIndFile = new File("reports", avgIndFilename + "_" + p);
+				File bestEnsembleFile = new File("reports", bestEnsembleFilename + "_" + p);
+				File iterEnsembleFile = new File("reports", iterEnsembleFilename + "_" + p);
+				
+				// Report writer
+				FileWriter bestIndWriter = null;
+				FileWriter avgIndWriter = null;
+				FileWriter bestEnsembleWriter = null;
+				FileWriter iterEnsembleWriter = null;
 
-			bestIndWriter = new FileWriter(bestIndFile, true);
-			avgIndWriter = new FileWriter(avgIndFile, true);
-			bestEnsembleWriter = new FileWriter(bestEnsembleFile, true);
-			iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
+				bestIndWriter = new FileWriter(bestIndFile, true);
+				avgIndWriter = new FileWriter(avgIndFile, true);
+				bestEnsembleWriter = new FileWriter(bestEnsembleFile, true);
+				iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
+				
+				bestIndWriter.append(System.getProperty("line.separator"));
+				bestIndWriter.close();
+				avgIndWriter.append(System.getProperty("line.separator"));
+				avgIndWriter.close();
+				bestEnsembleWriter.append(System.getProperty("line.separator"));
+				bestEnsembleWriter.close();
+				iterEnsembleWriter.append(System.getProperty("line.separator"));
+				iterEnsembleWriter.close();
+			}
 			
-			bestIndWriter.append(System.getProperty("line.separator"));
-			bestIndWriter.close();
-			avgIndWriter.append(System.getProperty("line.separator"));
-			avgIndWriter.close();
-			bestEnsembleWriter.append(System.getProperty("line.separator"));
-			bestEnsembleWriter.close();
-			iterEnsembleWriter.append(System.getProperty("line.separator"));
-			iterEnsembleWriter.close();
 		} 
 		catch (IOException e) {
 			throw new RuntimeException("Error writing report file");
@@ -338,7 +346,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	 * @param algorithm Algorithm
 	 */
     protected void doDataReport(MLCAlgorithm algorithm)
-	{
+	{   	
     	// Test report name
 		String testReportFilename = "TestDataReport.txt";
 		// Train report name
@@ -348,7 +356,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 		// Train Report file
 		File trainReportFile = new File(reportDirectory, trainReportFilename);
 		
-		classify(algorithm.getDatasetTrain(), algorithm.getEnsemble(), trainReportFile);
+		classify(algorithm.getFullDatasetTrain(), algorithm.getEnsemble(), trainReportFile);
 		classify(algorithm.getDatasetTest(), algorithm.getEnsemble(), testReportFile);
 	}
     
@@ -398,7 +406,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
         // Train report name
     	String trainReportFilename = "TrainClassificationReport.txt";
            	
-        MultiLabelInstances datasetTrain = algorithm.getDatasetTrain();
+        MultiLabelInstances datasetTrain = algorithm.getFullDatasetTrain();
         MultiLabelInstances datasetTest = algorithm.getDatasetTest();        
         
         //Build the classifier ENSURE IT WAS INICIALIZED WITH THE GENOTYPE!!!

@@ -13,6 +13,9 @@ import net.sf.jclec.algorithm.PopulationAlgorithm;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationRuntimeException;
 
@@ -382,17 +385,28 @@ public class MultiSG extends MultiPopulationAlgorithm
 	@Override
 	protected void doSelection() 
 	{
-		for(int i=0; i<numSubpop; i++) {
-			pset.set(i, parentsSelector.select(bset.get(i)));
+		pset = new ArrayList<List<IIndividual>>(numSubpop);
+		//pset = parentsSelector.select(bset);
+		for(int p=0; p<numSubpop; p++) {
+			System.out.println(bset.get(p).size());
+			System.out.println(pset.size());
+			pset.add(p, parentsSelector.select(bset.get(p), subpopSize));
 		}
+		System.out.println("pset " + pset.size());
+		
+		
+		//for(int i=0; i<numSubpop; i++) {
+		//	pset.add(i, parentsSelector.select(bset.get(i)));
+		//}
 	}
 
 	@Override
 	protected void doGeneration() 
 	{
+		cset = new ArrayList<List<IIndividual>>(numSubpop);
 		for(int i=0; i<numSubpop; i++) {
 			// Recombine parents
-			cset.set(i, recombinator.recombine(pset.get(i)));
+			cset.add(i, recombinator.recombine(pset.get(i)));
 			
 			// Add non-recombined inds. 
 			// These individuals are references to existent individuals 
@@ -419,17 +433,36 @@ public class MultiSG extends MultiPopulationAlgorithm
 	@Override
 	protected void doReplacement() 
 	{
-		rset = bset;
+		//rset = bset;
+		rset = new ArrayList<List<IIndividual>>(numSubpop);
+		for(int p=0; p<numSubpop; p++) {
+			//rset.get(p).clear();
+			rset.add(p, bset.get(p));
+		}
 	}
 
 	@Override
 	protected void doUpdate() 
 	{
+		for(int p=0; p<numSubpop; p++) {
+			//bset.get(p).clear();
+			//bset.get(p).addAll(cset.get(p));
+			bset.set(p, cset.get(p));
+			
+			//pset.get(p).clear();
+			rset.get(p).clear();
+			cset.get(p).clear();
+		}
+		
+		pset = new ArrayList<List<IIndividual>>(numSubpop);
+		cset = new ArrayList<List<IIndividual>>(numSubpop);
+		rset = new ArrayList<List<IIndividual>>(numSubpop);
+		
 		// Sets new bset
-		bset = cset;
+		//bset = cset;
 		// Clear pset, rset & cset
-		pset = null;
-		rset = null;
-		cset = null;	
+		//pset = null;
+		//rset = null;
+		//cset = null;	
 	}
 }

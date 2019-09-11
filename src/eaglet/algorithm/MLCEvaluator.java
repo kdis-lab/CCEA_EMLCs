@@ -176,7 +176,8 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		byte[] genotype = ((BinArrayIndividual) ind).getGenotype();
 
 		//Genotype to string
-		String s = Integer.toString(subpop) + Arrays.toString(genotype);
+		String s = subpop + Arrays.toString(genotype);
+		System.out.println("--" + s);
 		
 		double fitness = -1;
 		

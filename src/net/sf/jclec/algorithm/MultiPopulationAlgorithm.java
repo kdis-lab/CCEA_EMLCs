@@ -1,5 +1,6 @@
 package net.sf.jclec.algorithm;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.jclec.ISpecies;
@@ -194,6 +195,11 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 		for(int i=0; i<numSubpop; i++) {
 			//Initialize each population
 			bset.set(i, provider.provide(subpopSize));
+			//bset = new ArrayList<List<IIndividual>>(numSubpop);
+			pset = new ArrayList<List<IIndividual>>(numSubpop);
+			cset = new ArrayList<List<IIndividual>>(numSubpop);
+			rset = new ArrayList<List<IIndividual>>(numSubpop);
+			
 			// Evaluate individuals
 			evaluator.evaluate(bset.get(i));
 		}

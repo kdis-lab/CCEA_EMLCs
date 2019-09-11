@@ -214,6 +214,16 @@ public class MLCAlgorithm extends MultiSGE {
 	}
 	
 	/**
+	 * Gets the full training multi-label dataset
+	 * 
+	 * @return Multi-label full training dataset
+	 */
+	public MultiLabelInstances getFullDatasetTrain()
+	{
+		return fullDatasetTrain;
+	}
+	
+	/**
 	 * Gets the max number of labels per classifier
 	 * 
 	 * @return Max number of labels per classifier
@@ -307,6 +317,10 @@ public class MLCAlgorithm extends MultiSGE {
 	{
 		configureEagletDefaults(configuration);
 		super.configure(configuration);
+		
+		System.out.println("Number of subpopulations: " + numSubpop);
+		datasetTrain = new MultiLabelInstances[numSubpop];
+		datasetValidation = new MultiLabelInstances[numSubpop];
 		
 		try {
 			//Get seed for random numbers
@@ -405,6 +419,11 @@ public class MLCAlgorithm extends MultiSGE {
 		//Calculate individuals by subpopulation
 		subpopSize = populationSize / numSubpop;
 		
+		bset = new ArrayList<List<IIndividual>>(numSubpop);
+		pset = new ArrayList<List<IIndividual>>(numSubpop);
+		cset = new ArrayList<List<IIndividual>>(numSubpop);
+		rset = new ArrayList<List<IIndividual>>(numSubpop);
+		
 		phiMatrix = new double[numSubpop][numberLabels][numberLabels];
 		
 		for(int p=0; p<numSubpop; p++) {
@@ -456,7 +475,8 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			/* super.doInit(); */
 			// Create individuals
-			bset.set(p, provider.provide(subpopSize));
+			List<IIndividual> prov = provider.provide(subpopSize);
+			bset.add(p, prov);
 			// Evaluate individuals
 			((MLCEvaluator)evaluator).setSubpopID(p);
 			((MLCEvaluator)evaluator).evaluate(bset.get(p));
@@ -467,23 +487,35 @@ public class MLCAlgorithm extends MultiSGE {
 		
 	}
 	
-	
-	@Override
+
 	protected void doUpdate() 
 	{	
 		try{
-			for(int p=0; p<subpopSize; p++) {
+			for(int p=0; p<numSubpop; p++) {
 				//Join all bset and cset individuals in cset
+				System.out.println("p: " + p);
+				System.out.println("bset.get(p) " + bset.get(p).size());
+				System.out.println("cset.get(p) " + cset.get(p).size());
 				cset.get(p).addAll(bset.get(p));
+				System.out.println("cset1.get(p) " + cset.get(p).size());
 				cset.set(p, Utils.removeDuplicated(cset.get(p)));
+				System.out.println("cset2.get(p) " + cset.get(p).size());
 				
+				bset.set(p, bettersSelector.select(cset.get(p), subpopSize));
+				
+				/*
 				List<IIndividual> ensembleMembers = null;
 				
 				//Select and build ensemble of this generation
 				ensembleMembers = selectEnsembleMembers(cset.get(p), numClassifiers, expectedVotesPerLabel, betaMemberSelection);
-				EnsembleMLC currentEnsemble = generateEnsemble(ensembleMembers, numClassifiers);
+				//ensembleMembers = randomSelectionFitnessWeighted(cset.get(p), numClassifiers);
+				EnsembleMLC currentEnsemble = generateEnsemble(ensembleMembers, numClassifiers, p);
 				currentEnsemble.setValidationSet(datasetValidation[p]);
 				currentEnsemble.build(datasetTrain[p]);
+				
+				System.out.println("Ensemble " + p);
+				currentEnsemble.printEnsemble();
+				System.out.println();
 				
 				//Evaluate ensemble and compare to the best of all
 				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(currentEnsemble, datasetValidation[p]);
@@ -503,6 +535,13 @@ public class MLCAlgorithm extends MultiSGE {
 				cset.get(p).removeAll(ensembleMembers);
 				bset.set(p, ensembleMembers);
 				bset.get(p).addAll(randomSelectionFitnessWeighted(cset.get(p), subpopSize-numClassifiers));
+				System.out.println("final bset: " + bset.get(p).size());
+				*/
+				
+				pset.get(p).clear();
+				rset.get(p).clear();
+				cset.get(p).clear();
+				System.out.println("final bset: " + bset.get(p).size());
 			}
 		}
 		catch(Exception e){
@@ -510,9 +549,9 @@ public class MLCAlgorithm extends MultiSGE {
 		}
 
 		// Clear pset, rset & cset
-		pset = null;
-		rset = null;
-		cset = null;	
+		//pset.clear();
+		//rset.clear();
+		//cset.clear();	
 	}
 
 	
@@ -624,14 +663,14 @@ public class MLCAlgorithm extends MultiSGE {
 		return datasets;
 	}
 	
-	private EnsembleMLC generateEnsemble(List<IIndividual> members, int n){
+	private EnsembleMLC generateEnsemble(List<IIndividual> members, int n, int p){
 		byte [][] EnsembleMatrix = new byte[n][numberLabels];
 		
 		for(int i=0; i<n; i++){
 			System.arraycopy(((BinArrayIndividual)members.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
 		}
 		
-		EnsembleMLC ensemble = new EnsembleMLC(EnsembleMatrix, learner, numClassifiers, tableClassifiers);
+		EnsembleMLC ensemble = new EnsembleMLC(EnsembleMatrix, learner, numClassifiers, tableClassifiers, p);
 		ensemble.setThreshold(predictionThreshold);
 		return ensemble;
 		

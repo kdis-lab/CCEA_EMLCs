@@ -72,6 +72,11 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	MultiLabelInstances validationSet;
 	
 	/**
+	 * Identifier of subpopulation
+	 */
+	int p;
+	
+	/**
 	 * Constructor 
 	 * 
 	 * @param EnsembleMatrix Matrix identifying the base classifiers of the ensemble
@@ -81,13 +86,14 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * @param tableClassifiers Table storing the previously built classifiers
 	 * @param tablePerformanceByLabel Table storing the performances per label
 	 */
-	public EnsembleMLC(byte[][] EnsembleMatrix, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers)
+	public EnsembleMLC(byte[][] EnsembleMatrix, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers, int p)
 	{
 		super(baseLearner);
 		
 		this.EnsembleMatrix = EnsembleMatrix;		
 		this.numClassifiers = numClassifiers;
 		this.tableClassifiers = tableClassifiers;
+		this.p = p;
 	}
 	
 	public EnsembleMLC(EnsembleMLC e)
@@ -256,7 +262,14 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 			for(int i = 0; i < numClassifiers; i++)
 			{
 				//Get classifier from table
-				Ensemble[i] = tableClassifiers.get(Arrays.toString(EnsembleMatrix[i]));
+				String s = p + Arrays.toString(EnsembleMatrix[i]);
+				System.out.println("---" + s);
+				Ensemble[i] = tableClassifiers.get(s);
+				System.out.println("\t\t" + Ensemble[i]);
+				if(Ensemble[i] == null) {
+					System.out.println("String " + s + " not found in the table.");
+					System.exit(-1);
+				}
 			}
 
 			//Sets wieghts evenly
@@ -266,18 +279,39 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 					voteWeights[i][j] = (double)1 / votesPerLabel[j];
 				}
 			}
+			
+			System.out.println("Ensemble built! " + Ensemble.length);
+			//System.out.println(Ensemble[0].toString());
 	}
 	
 	@Override
 	protected MultiLabelOutput makePredictionInternal(Instance instance)
 			throws Exception, InvalidDataException 	
 	{				
+		//System.out.println("ENSEMBLE");
+		//System.out.println(Ensemble.toString());;
+		
 	    double[] sumConf = new double[numLabels];
 	    double[] sumVotes = new double[numLabels];
 	    
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {
+			//System.out.println(Ensemble[model].toString());
+			if(Ensemble == null) {
+				System.out.println("Ensemble is null");
+				System.exit(-1);
+			}
+			//System.out.println("Ensemble length: " + Ensemble.length);
+			//System.out.println("\t"+Ensemble[0].toString());
+			if(Ensemble[model] == null) {
+				System.out.println("Ensemble[model] is null");
+				System.exit(-1);
+			}
+			if(instance == null) {
+				System.out.println("instance is null");
+				System.exit(-1);
+			}
 			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instance);
 			        	
 			for(int label=0, k=0; label < numLabels; label++)
