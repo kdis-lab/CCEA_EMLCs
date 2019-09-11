@@ -1,6 +1,7 @@
 package eaglet.mutator;
 
 import net.sf.jclec.binarray.BinArrayMutator;
+import net.sf.jclec.binarray.MultipBinArrayMutator;
 
 /**
  * Class implementing an abstract mutator class which the rest will extend
@@ -8,7 +9,7 @@ import net.sf.jclec.binarray.BinArrayMutator;
  * @author Jose M. Moyano
  *
  */
-public abstract class EagletMutator extends BinArrayMutator {
+public abstract class EagletMutator extends MultipBinArrayMutator {
 
 	/**
 	 * Serialization constant

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 import net.sf.jclec.binarray.BinArrayIndividual;
 import net.sf.jclec.binarray.BinArrayRecombinator;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayRecombinator;
 
 /**
  * Class implementing the random crossover
@@ -11,7 +13,7 @@ import net.sf.jclec.binarray.BinArrayRecombinator;
  * @author Jose M. Moyano
  *
  */
-public class RandomCrossover extends BinArrayRecombinator {
+public class RandomCrossover extends MultipBinArrayRecombinator {
 
 	/**
 	 * Serialization constant
@@ -56,8 +58,8 @@ public class RandomCrossover extends BinArrayRecombinator {
 	
 	@Override
 	protected void recombineNext() {
-		BinArrayIndividual p1 = (BinArrayIndividual) parentsBuffer.get(parentsCounter);
-		BinArrayIndividual p2 = (BinArrayIndividual) parentsBuffer.get(parentsCounter+1);
+		MultipBinArrayIndividual p1 = (MultipBinArrayIndividual) parentsBuffer.get(parentsCounter);
+		MultipBinArrayIndividual p2 = (MultipBinArrayIndividual) parentsBuffer.get(parentsCounter+1);
 
 		//Parents genotypes
 		byte [] p1_genome = p1.getGenotype();
@@ -125,8 +127,8 @@ public class RandomCrossover extends BinArrayRecombinator {
 		
 
 		// Put sons in buffer
-		sonsBuffer.add(species.createIndividual(s1_genome));
-		sonsBuffer.add(species.createIndividual(s2_genome));
+		sonsBuffer.add(species.createIndividual(s1_genome, p1.getSubpop()));
+		sonsBuffer.add(species.createIndividual(s2_genome, p2.getSubpop()));
 	}
 
 }

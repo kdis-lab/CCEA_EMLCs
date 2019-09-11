@@ -103,6 +103,10 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	public void setSubpop(int p) {
 		this.p = p;
 	}
+	
+	public int getSubpop() {
+		return this.p;
+	}
 
 	/////////////////////////////////////////////////////////////////
 	// ----------------------------------------------- Public methods

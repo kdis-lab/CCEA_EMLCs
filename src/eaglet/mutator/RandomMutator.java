@@ -1,6 +1,7 @@
 package eaglet.mutator;
 
 import net.sf.jclec.binarray.BinArrayIndividual;
+import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
 /**
  * Class implementing the bits exchange mutator
@@ -38,7 +39,7 @@ public class RandomMutator extends EagletMutator {
 	@Override
 	protected void mutateNext() {
 		//Get individual to be mutated
-		BinArrayIndividual mutant = (BinArrayIndividual) parentsBuffer.get(parentsCounter);
+		MultipBinArrayIndividual mutant = (MultipBinArrayIndividual) parentsBuffer.get(parentsCounter);
 		
 		int gl = mutant.getGenotype().length;
 		
@@ -59,7 +60,7 @@ public class RandomMutator extends EagletMutator {
 		mgenome[mp1] = mgenome[mp2];
 		mgenome[mp2] = aux;
 		
-		sonsBuffer.add(species.createIndividual(mgenome));
+		sonsBuffer.add(species.createIndividual(mgenome, mutant.getSubpop()));
 	}
 	
 }
