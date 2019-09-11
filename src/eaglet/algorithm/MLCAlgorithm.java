@@ -336,30 +336,30 @@ public class MLCAlgorithm extends MultiSGE {
 
 			useValidationSet = configuration.getBoolean("validation-set");
 			
+			String validationSetTechniqueString = configuration.getString("validation-set-type");
+			//System.out.println(validationSetTechniqueString);
+			switch (validationSetTechniqueString) {
+			case "pct67":
+				validationSetTechnique = ValidationSetTechnique.pct67;					
+				break;
+			case "pct75":
+				validationSetTechnique = ValidationSetTechnique.pct75;					
+				break;
+			case "pct80":
+				validationSetTechnique = ValidationSetTechnique.pct80;					
+				break;
+			case "outOfBag":
+				validationSetTechnique = ValidationSetTechnique.outOfBag;					
+				break;
+
+			default:
+				break;
+			}
+			
 			if(useValidationSet)
 			{
-				String validationSetTechniqueString = configuration.getString("validation-set-type");
-				//System.out.println(validationSetTechniqueString);
-				switch (validationSetTechniqueString) {
-				case "pct67":
-					validationSetTechnique = ValidationSetTechnique.pct67;					
-					break;
-				case "pct75":
-					validationSetTechnique = ValidationSetTechnique.pct75;					
-					break;
-				case "pct80":
-					validationSetTechnique = ValidationSetTechnique.pct80;					
-					break;
-				case "outOfBag":
-					validationSetTechnique = ValidationSetTechnique.outOfBag;					
-					break;
-
-				default:
-					break;
-				}
-				
 				for(int i=0; i<numSubpop; i++) {
-					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain, validationSetTechnique);
+					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), validationSetTechnique);
 					datasetTrain[i] = m[0];
 					datasetValidation[i] = m[1];
 				}
@@ -367,10 +367,19 @@ public class MLCAlgorithm extends MultiSGE {
 			else
 			{
 				//Train and validation set are the same, the full set
+				/*
 				for(int i=0; i<numSubpop; i++) {
 					datasetTrain[i] = fullDatasetTrain;
 					datasetValidation[i] = fullDatasetTrain;
 				}
+				*/
+				for(int i=0; i<numSubpop; i++) {
+					seed = seed + 1;
+					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), validationSetTechnique);
+					datasetTrain[i] = m[0];
+					datasetValidation[i] = m[0];
+					datasetValidation[i].getDataSet().addAll(m[1].getDataSet());
+				}	
 			}
 			
 			//Get number of labels
@@ -478,9 +487,8 @@ public class MLCAlgorithm extends MultiSGE {
 			((EagletIndividualCreator) provider).setSubpopId(p);
 			List<IIndividual> prov = provider.provide(subpopSize);
 			bset.add(p, prov);
-			System.out.println(bset.get(p).get(0).toString());
+			//System.out.println(bset.get(p).get(0).toString());
 			// Evaluate individuals
-			((MLCEvaluator)evaluator).setSubpopID(p);
 			((MLCEvaluator)evaluator).evaluate(bset.get(p));
 			// Do Control
 			doControl();
@@ -495,7 +503,7 @@ public class MLCAlgorithm extends MultiSGE {
 		try{
 			for(int p=0; p<numSubpop; p++) {
 				//Join all bset and cset individuals in cset
-				System.out.println("p: " + p);
+				System.out.println("Updating p: " + p);
 				//System.out.println("bset.get(p) " + bset.get(p).size());
 				//System.out.println("cset.get(p) " + cset.get(p).size());
 				cset.get(p).addAll(bset.get(p));
@@ -546,7 +554,7 @@ public class MLCAlgorithm extends MultiSGE {
 				pset.get(p).clear();
 				rset.get(p).clear();
 				cset.get(p).clear();
-				System.out.println("final bset: " + bset.get(p).size());
+				//System.out.println("final bset: " + bset.get(p).size());
 			}
 		}
 		catch(Exception e){
@@ -563,12 +571,15 @@ public class MLCAlgorithm extends MultiSGE {
 	@Override
 	protected void doControl()
 	{
-		System.out.println("------------------------");
+		//System.out.println("------------------------");
 		System.out.println("--- Generation " + generation + " ---");
-		System.out.println("------------------------");
+		//System.out.println("------------------------");
 		
 		
 		if(generation % 2 == 0 && generation > 0) {
+			
+			System.out.println("-- GENERATE ENSEMBLE --");
+			
 			List<IIndividual> allInds = new ArrayList<IIndividual>();
 			for(int p=0; p<numSubpop; p++) {
 				allInds.addAll(bset.get(p));
@@ -583,17 +594,29 @@ public class MLCAlgorithm extends MultiSGE {
 				currentEnsemble.build(fullDatasetTrain);
 				
 				currentEnsemble.printEnsemble();
+				
+				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(currentEnsemble, fullDatasetTrain);
+				iterEnsembleFitness = ensembleEval.evaluate();
+				
+				System.out.println("Fitness iter " + generation + ": " + iterEnsembleFitness);
+				System.out.println("currentEnsemble  votes: " + Arrays.toString(currentEnsemble.getVotesPerLabel()));
+				if(iterEnsembleFitness > bestFitness){
+					System.out.println("\tNew best fitness!");
+					bestFitness = iterEnsembleFitness;
+					bestEnsemble = currentEnsemble;
+				}
+				
 				System.out.println();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-
-			
 		}
 		
 		
 		if(generation >= maxOfGenerations) //generation >= maxOfGenerations
 		{
+			System.out.println("--- MAX GEN REACHED ---");
+			
 			ensemble = bestEnsemble;
 			System.out.println("Ensemble fitness: " + bestFitness);
 			

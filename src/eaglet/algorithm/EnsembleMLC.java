@@ -208,7 +208,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		
 		for(int model=0; model<numClassifiers; model++)
 		{	
-			str += ((MultipBinArrayIndividual)EnsembleInds).toString();
+			str += ((MultipBinArrayIndividual)EnsembleInds.get(model)).toString();
 			
 			/*byte [] row = ((MultipBinArrayIndividual)EnsembleInds).getGenotype();
 			for (int label=0; label<numLabels; label++)
@@ -284,9 +284,9 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 				//Get classifier from table
 				//String s = p + Arrays.toString(EnsembleMatrix[i]);
 				String s = EnsembleInds.get(i).toString();
-				System.out.println("---" + s);
+				//System.out.println("---" + s);
 				Ensemble[i] = tableClassifiers.get(s);
-				System.out.println("\t\t" + Ensemble[i]);
+				//System.out.println("\t\t" + Ensemble[i]);
 				if(Ensemble[i] == null) {
 					System.out.println("String " + s + " not found in the table.");
 					System.exit(-1);
