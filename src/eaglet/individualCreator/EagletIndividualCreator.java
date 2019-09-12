@@ -45,6 +45,12 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 	{
 		super();
 	}
+	
+	public EagletIndividualCreator(int p)
+	{
+		super();
+		this.p = p;
+	}
 		
 	/**
 	 * Sets the number of labels
