@@ -576,7 +576,7 @@ public class MLCAlgorithm extends MultiSGE {
 		//System.out.println("------------------------");
 		
 		
-		if(generation % 2 == 0 && generation > 0) {
+		if(generation % 5 == 0 && generation > 0) {
 			
 			System.out.println("-- GENERATE ENSEMBLE --");
 			
@@ -593,7 +593,7 @@ public class MLCAlgorithm extends MultiSGE {
 			
 				currentEnsemble.build(fullDatasetTrain);
 				
-				currentEnsemble.printEnsemble();
+				
 				
 				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(currentEnsemble, fullDatasetTrain);
 				iterEnsembleFitness = ensembleEval.evaluate();
@@ -604,6 +604,7 @@ public class MLCAlgorithm extends MultiSGE {
 					System.out.println("\tNew best fitness!");
 					bestFitness = iterEnsembleFitness;
 					bestEnsemble = currentEnsemble;
+					currentEnsemble.printEnsemble();
 				}
 				
 				System.out.println();
