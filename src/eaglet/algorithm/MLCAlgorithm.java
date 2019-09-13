@@ -99,6 +99,13 @@ public class MLCAlgorithm extends MultiSGE {
 	 *  Table that stores all the base classifiers that have been built 
 	 */
 	private Hashtable<String, MultiLabelLearner> tableClassifiers;
+	
+	/**
+	 *  Table storing individuals that have been removed or added to a subpopulation
+	 *  	in the communication process.
+	 *  It avoids from continuously adding the same individuals that previously we removed.
+	 */
+	private HashSet<String> tabuSet;
 
 	/**
 	 *  Ensemble classifier 
@@ -188,6 +195,7 @@ public class MLCAlgorithm extends MultiSGE {
 		super();
 		tableFitness = new Hashtable<String, Double>();
 		tableClassifiers = new Hashtable<String, MultiLabelLearner>();
+		tabuSet = new HashSet<String>();
 		bestFitness = Double.MIN_VALUE;
 		
 		learner = new LabelPowerset(new J48());
@@ -707,6 +715,7 @@ public class MLCAlgorithm extends MultiSGE {
 		}
 		//System.exit(1);
 		
+		System.out.println("Tabu size: " + tabuSet.size());
 		return bset;
 	}
 	
@@ -733,21 +742,31 @@ public class MLCAlgorithm extends MultiSGE {
 	
 	
 	public int updateSubpop(List<IIndividual> list, IIndividual ind) {
+		if(tabuSet.contains(((MultipBinArrayIndividual)ind).toString())){
+			System.out.println("Tabu table working.");
+			return 0;
+		}
+		
 		for(IIndividual oInd : list) {
 			if(Arrays.toString(((MultipBinArrayIndividual)ind).getGenotype()).equals(Arrays.toString(((MultipBinArrayIndividual)oInd).getGenotype()))) {
-				list.remove(oInd);
-				return -1;
+				//if(randgen.coin()) {
+					list.remove(oInd);
+					tabuSet.add(((MultipBinArrayIndividual)ind).toString());
+					System.out.println("Adding: " + ((MultipBinArrayIndividual)ind).toString());
+					return -1;
+				//}
+				//return 0;
 			}
 		}
 		
-		/*
 		if(randgen.coin()) {
 			//Add the combination of labels of the 'ind' but for subpop of 'list'
 			MultipBinArrayIndividual newInd = new MultipBinArrayIndividual(((MultipBinArrayIndividual)ind).getGenotype(), ((MultipBinArrayIndividual)list.get(0)).getSubpop());
 			list.add(newInd);
+			tabuSet.add(((MultipBinArrayIndividual)newInd).toString());
+			System.out.println("Adding: " + ((MultipBinArrayIndividual)newInd).toString());
 			return +1;
 		}
-		*/
 		
 		return 0;
 	}
