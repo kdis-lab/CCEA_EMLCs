@@ -2,8 +2,6 @@ package eaglet.recombinator;
 
 import java.util.ArrayList;
 
-import net.sf.jclec.binarray.BinArrayIndividual;
-import net.sf.jclec.binarray.BinArrayRecombinator;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.binarray.MultipBinArrayRecombinator;
 

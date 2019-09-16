@@ -108,8 +108,6 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 	protected void replaceRepeatedByRandomIndividuals(){
 		createdBuffer = Utils.removeDuplicated(createdBuffer);
 		
-		//System.out.println("createdBuffer.size(): " + createdBuffer.size());
-		
 		MultipBinArrayIndividual ind;
 		while(createdBuffer.size() < numberOfIndividuals){
 			ind = species.createIndividual(createRandomGenotype(), p);

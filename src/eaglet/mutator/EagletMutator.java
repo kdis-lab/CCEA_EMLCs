@@ -1,6 +1,5 @@
 package eaglet.mutator;
 
-import net.sf.jclec.binarray.BinArrayMutator;
 import net.sf.jclec.binarray.MultipBinArrayMutator;
 
 /**
