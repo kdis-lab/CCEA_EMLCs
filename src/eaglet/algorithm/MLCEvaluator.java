@@ -1,7 +1,6 @@
 package eaglet.algorithm;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.List;
@@ -16,7 +15,6 @@ import mulan.evaluation.measure.Measure;
 import net.sf.jclec.IFitness;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.base.AbstractParallelEvaluator;
-import net.sf.jclec.binarray.BinArrayIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.fitness.ValueFitnessComparator;
@@ -161,7 +159,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 		return COMPARATOR;
 	}	
 	
-
+	@Override
 	protected void evaluate(IIndividual ind) 
 	{
 		// Individual genotype
@@ -171,7 +169,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 
 		//Genotype to string
 		String s = ((MultipBinArrayIndividual) ind).toString();
-		//System.out.println("--" + s);
 		
 		double fitness = -1;
 		
@@ -219,7 +216,6 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	     	  	//Put fitness and built classifier in tables
 	     	  	tableFitness.put(s, fitness);
 	     	  	tableClassifiers.put(s, mll.makeCopy());
-	     	  	//System.out.println("--" + s);
 				
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
