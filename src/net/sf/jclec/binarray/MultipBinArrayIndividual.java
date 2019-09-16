@@ -11,8 +11,11 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 
 /**
  * Individual with a byte array as genotype.
+ * 
+ * It allows individuals of multiple subpopulations.
  *  
  * @author Sebastian Ventura
+ * @author Joes M. Moyano
  */
 
 @SuppressWarnings("deprecation")
@@ -38,7 +41,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	/**
 	 * Empty constructor
 	 */
-	
 	public MultipBinArrayIndividual() 
 	{
 		super();
@@ -49,7 +51,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	 * 
 	 * @param genotype Individual genotype
 	 */
-	
 	public MultipBinArrayIndividual(byte[] genotype) 
 	{
 		super(genotype);
@@ -73,7 +74,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	 * @param genotype Individual genotype
 	 * @param fitness  Individual fitness
 	 */
-	
 	public MultipBinArrayIndividual(byte[] genotype, IFitness fitness) 
 	{
 		super(genotype, fitness);
@@ -87,7 +87,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	 * @param fitness  Individual fitness
 	 * @param p Identifier of subpopulation
 	 */
-	
 	public MultipBinArrayIndividual(byte[] genotype, IFitness fitness, int p) 
 	{
 		super(genotype, fitness);
@@ -104,6 +103,11 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 		this.p = p;
 	}
 	
+	/**
+	 * Get identifier of subpopulation of the individual
+	 * 
+	 * @return Identifier of subpopulation
+	 */
 	public int getSubpop() {
 		return this.p;
 	}
@@ -117,7 +121,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	/**
 	 * {@inheritDoc}
 	 */
-		
 	public IIndividual copy() 
 	{
 		// Genotype length
@@ -141,7 +144,6 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 	 * 
 	 * {@inheritDoc}
 	 */
-	
 	public double distance(IIndividual other) 
 	{
 		// Other genotype
@@ -179,6 +181,7 @@ public class MultipBinArrayIndividual extends AbstractIndividual<byte[]>
 		}
 	}
 	
+	@Override
 	public String toString() {
 		return new String(p + Arrays.toString(genotype));
 	}

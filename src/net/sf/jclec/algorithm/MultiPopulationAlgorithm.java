@@ -3,25 +3,14 @@ package net.sf.jclec.algorithm;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.sf.jclec.ISpecies;
 import net.sf.jclec.algorithm.PopulationAlgorithm;
-import net.sf.jclec.IProvider;
-import net.sf.jclec.IEvaluator;
-import net.sf.jclec.IConfigure;
 import net.sf.jclec.IIndividual;
-import net.sf.jclec.IPopulation;
-
-import net.sf.jclec.util.random.IRandGen;
-import net.sf.jclec.util.random.IRandGenFactory;
-
 
 import org.apache.commons.lang.builder.EqualsBuilder;
-
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationRuntimeException;
 
 /**
- * Algorithm that operates over a population. 
+ * Algorithm that operates over multiple populations. 
  * 
  * @author Sebastian Ventura
  * @author Jose M. Moyano
@@ -44,19 +33,15 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	protected int subpopSize;
 		
 	/** Actual individuals set */
-	
 	protected List<List<IIndividual>> bset;
 	
 	/** Individuals selected as parents */
-	
 	protected transient List<List<IIndividual>> pset;
 	
 	/** Individuals generated */
-	
 	protected transient List<List<IIndividual>> cset;
 	
 	/** Individuals to replace */
-	
 	protected transient List<List<IIndividual>> rset;
 
 	/////////////////////////////////////////////////////////////////
@@ -66,7 +51,6 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	/**
 	 * Empty (default) constructor
 	 */
-	
 	public MultiPopulationAlgorithm() 
 	{
 		super();
@@ -78,31 +62,63 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 
 	// System state
 	
+	/**
+	 * Get list of bsets (one bset per subpopulation)
+	 * 
+	 * @return List of subpopulations (bsets)
+	 */
 	public List<List<IIndividual>> getMultiInhabitants() 
 	{
 		return bset;
 	}
 	
-	public List<IIndividual> getInhabitants(int i) 
+	/**
+	 * Get individuals for a given subpopulation
+	 * 
+	 * @param p Index of subpopulation
+	 * @return List of individuals of the subpopulation
+	 */
+	public List<IIndividual> getInhabitants(int p) 
 	{
-		return bset.get(i);
+		return bset.get(p);
 	}
 
+	/**
+	 * Set subspopulations
+	 * 
+	 * @param inhabitants List of lists with the individuals of each subpopulation
+	 */
 	public final void setMultiInhabitants(List<List<IIndividual>> inhabitants)
 	{
 		this.bset = inhabitants;
 	}
 	
-	public final void setInhabitants(List<IIndividual> inhabitants, int i)
+	/**
+	 * Set individuals for a given subpopulation
+	 * 
+	 * @param inhabitants List of individuals 
+	 * @param p Index of subpopulation
+	 */
+	public final void setInhabitants(List<IIndividual> inhabitants, int p)
 	{
-		this.bset.set(i, inhabitants);
+		this.bset.set(p, inhabitants);
 	}
 
+	/**
+	 * Get the number of subpopulations in the environment
+	 * 
+	 * @return Number of subpopulations
+	 */
 	public final int getNumSubpop() 
 	{
 		return numSubpop;
 	}
 
+	/**
+	 * Set the number of subpopulations
+	 * 
+	 * @param numSubpop Number of subpopulations
+	 */
 	public final void setNumSubpop(int numSubpop) 
 	{
 		this.numSubpop = numSubpop;
@@ -133,7 +149,6 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	 * </li>
 	 * </ul>
 	 */
-	
 	public void configure(Configuration configuration)
 	{
 		// Call super.configure() method
@@ -186,7 +201,6 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	 * Create individuals in population, evaluating before start rest
 	 * of evolution
 	 */
-	
 	protected void doInit() 
 	{
 		//Calculate individuals by subpopulation
@@ -195,7 +209,7 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 		for(int i=0; i<numSubpop; i++) {
 			//Initialize each population
 			bset.set(i, provider.provide(subpopSize));
-			//bset = new ArrayList<List<IIndividual>>(numSubpop);
+
 			pset = new ArrayList<List<IIndividual>>(numSubpop);
 			cset = new ArrayList<List<IIndividual>>(numSubpop);
 			rset = new ArrayList<List<IIndividual>>(numSubpop);
@@ -208,10 +222,7 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 		doControl();
 	}
 
-	/**
-	 * ... 
-	 */
-	
+	@Override
 	protected void doIterate() 
 	{
 		generation++;
@@ -231,25 +242,21 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	/**
 	 * Select individuals to be breeded. 
 	 */
-	
 	protected abstract void doSelection();
 	
 	/**
 	 * Generate new individuals from parents
 	 */
-	
 	protected abstract void doGeneration();
 	
 	/**
 	 * Select individuals to extinct in this generation.
 	 */
-	
 	protected abstract void doReplacement();
 	
 	/**
 	 * Update population individuals.
 	 */
-	
 	protected abstract void doUpdate();
 	
 	/**
@@ -271,7 +278,6 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	 * </li>
 	 * </ul>
 	 */
-	
 	protected void doControl()
 	{
 		// If maximum number of generations is exceeded, evolution is
@@ -288,8 +294,9 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 			state = FINISHED;
 			return;
 		}
+		
 		// If any individual in b has an acceptable fitness evolution
-		// is finished
+		// is finished --> NOT CONTROLLED
 		/*
 		for (IIndividual individual : bset) {
 			if (individual.getFitness().isAcceptable()) {
