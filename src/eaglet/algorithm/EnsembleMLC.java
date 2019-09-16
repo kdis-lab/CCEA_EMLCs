@@ -301,7 +301,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 				}
 			}
 			
-			System.out.println("Ensemble built! " + Ensemble.length);
+			//System.out.println("Ensemble built! " + Ensemble.length);
 			//System.out.println(Ensemble[0].toString());
 	}
 	

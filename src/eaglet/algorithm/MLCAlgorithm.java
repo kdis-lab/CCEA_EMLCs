@@ -186,6 +186,18 @@ public class MLCAlgorithm extends MultiSGE {
 	 * beta value to multiply by distance to the ensemble in member selection
 	 */
 	double betaMemberSelection;
+	
+	/**
+	 * Indicates how many individuals have been included in the population for the current iteration
+	 * at the communication process.
+	 */
+	int [] currItAdd;
+	
+	/**
+	 * Indicates how many individuals have been removed from the population for the current iteration
+	 * at the communication process.
+	 */
+	int [] currItRem;
 
 	/**
 	 * Constructor
@@ -281,6 +293,18 @@ public class MLCAlgorithm extends MultiSGE {
 		return this.tableFitness.size();
 	}
 	
+	public int getTabuSize() {
+		return tabuSet.size();
+	}
+	
+	public int getCurrItAdd(int p) {
+		return currItAdd[p];
+	}
+	
+	public int getCurrItRem(int p) {
+		return currItRem[p];
+	}
+	
 	/**
 	 * Configure some default aspects and parameters of EME to make the configuration easier
 	 * 
@@ -340,6 +364,8 @@ public class MLCAlgorithm extends MultiSGE {
 		System.out.println("Number of subpopulations: " + numSubpop);
 		datasetTrain = new MultiLabelInstances[numSubpop];
 		datasetValidation = new MultiLabelInstances[numSubpop];
+		currItAdd = new int[numSubpop];
+		currItRem = new int[numSubpop];
 		
 		try {
 			//Get seed for random numbers
@@ -531,7 +557,7 @@ public class MLCAlgorithm extends MultiSGE {
 		try{
 			for(int p=0; p<numSubpop; p++) {
 				//Join all bset and cset individuals in cset
-				System.out.println("Updating p: " + p);
+				//System.out.println("Updating p: " + p);
 				//System.out.println("bset.get(p) " + bset.get(p).size());
 				//System.out.println("cset.get(p) " + cset.get(p).size());
 				cset.get(p).addAll(bset.get(p));
@@ -606,7 +632,7 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		if((generation % itersCommunication == 0) && (generation > 0)) {
 			
-			System.out.println("-- GENERATE ENSEMBLE --");
+			//System.out.println("-- GENERATE ENSEMBLE --");
 			
 			List<IIndividual> allInds = new ArrayList<IIndividual>();
 			for(int p=0; p<numSubpop; p++) {
@@ -680,8 +706,10 @@ public class MLCAlgorithm extends MultiSGE {
 		String comb = null;
 		
 		for(int p=0; p<numSubpop; p++) {
-			System.out.println("Subpop " + p + " size: " + bset.get(p).size());
-			System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
+			//System.out.println("Subpop " + p + " size: " + bset.get(p).size());
+			//System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
+			currItAdd[p] = 0;
+			currItRem[p] = 0;
 		}
 		
 		for(int i=0; i<ensemble.size(); i++) {
@@ -699,8 +727,8 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		for(int p=0; p<numSubpop; p++) {
 			((MLCEvaluator)evaluator).evaluate(bset.get(p));
-			System.out.println("Subpop " + p + " size: " + bset.get(p).size());
-			System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
+			//System.out.println("Subpop " + p + " size: " + bset.get(p).size());
+			//System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
 			
 			if(bset.get(p).size() > subpopSize) {
 				bset.set(p, selectEnsembleMembers(bset.get(p), subpopSize, expectedVotesPerLabel, betaMemberSelection));
@@ -710,12 +738,12 @@ public class MLCAlgorithm extends MultiSGE {
 				((MLCEvaluator)evaluator).evaluate(bset.get(p));
 			}
 			
-			System.out.println("Subpop " + p + " size: " + bset.get(p).size());	
-			System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
+			//System.out.println("Subpop " + p + " size: " + bset.get(p).size());	
+			//System.out.println("\tBest: " + ((SimpleValueFitness)((MultipBinArrayIndividual)bettersSelector.select(bset.get(p), 1).get(0)).getFitness()).getValue() );
 		}
 		//System.exit(1);
 		
-		System.out.println("Tabu size: " + tabuSet.size());
+		//System.out.println("Tabu size: " + tabuSet.size());
 		return bset;
 	}
 	
@@ -743,8 +771,11 @@ public class MLCAlgorithm extends MultiSGE {
 	
 	public int updateSubpop(List<IIndividual> list, IIndividual ind) {
 		if(tabuSet.contains(((MultipBinArrayIndividual)ind).toString())){
-			System.out.println("Tabu table working.");
-			return 0;
+			if(randgen.coin(0.75)) {
+				//System.out.println("Tabu table working.");
+				return 0;
+			}
+			//System.out.println("Tabu table gives oportunity");
 		}
 		
 		for(IIndividual oInd : list) {
@@ -752,7 +783,8 @@ public class MLCAlgorithm extends MultiSGE {
 				//if(randgen.coin()) {
 					list.remove(oInd);
 					tabuSet.add(((MultipBinArrayIndividual)ind).toString());
-					System.out.println("Adding: " + ((MultipBinArrayIndividual)ind).toString());
+					currItRem[((MultipBinArrayIndividual)ind).getSubpop()]++;
+					//System.out.println("Removing: " + ((MultipBinArrayIndividual)ind).toString());
 					return -1;
 				//}
 				//return 0;
@@ -764,7 +796,8 @@ public class MLCAlgorithm extends MultiSGE {
 			MultipBinArrayIndividual newInd = new MultipBinArrayIndividual(((MultipBinArrayIndividual)ind).getGenotype(), ((MultipBinArrayIndividual)list.get(0)).getSubpop());
 			list.add(newInd);
 			tabuSet.add(((MultipBinArrayIndividual)newInd).toString());
-			System.out.println("Adding: " + ((MultipBinArrayIndividual)newInd).toString());
+			currItAdd[((MultipBinArrayIndividual)ind).getSubpop()]++;
+			//System.out.println("Adding: " + ((MultipBinArrayIndividual)newInd).toString());
 			return +1;
 		}
 		
@@ -907,7 +940,7 @@ public class MLCAlgorithm extends MultiSGE {
 		indsCopy = bettersSelector.select(indsCopy, indsCopy.size());
 		
 		//Add first individual to ensemble members and remove from list
-		System.out.println("Best individual: " + ((MultipBinArrayIndividual)indsCopy.get(0)).toString() + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
+		//System.out.println("Best individual: " + ((MultipBinArrayIndividual)indsCopy.get(0)).toString() + " ; " + ((SimpleValueFitness)indsCopy.get(0).getFitness()).getValue());
 		members.add(indsCopy.get(0));
 		System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
 		indsCopy.remove(0);
