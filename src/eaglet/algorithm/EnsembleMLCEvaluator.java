@@ -80,11 +80,8 @@ public class EnsembleMLCEvaluator {
      	Evaluator eval = new Evaluator();
      	
      	try {
-     		//System.out.println(ensemble.getnumClassifiers());
-     		//System.out.println(mlData.getNumInstances());
 			results = eval.evaluate(ensemble, mlData, measures);
 			fitness = results.getMeasures().get(0).getValue();
-
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

@@ -294,7 +294,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 				// Prints individuals
 				for(int i=0; i<inds.get(0).size(); i++) {
 					for(int p=0; p<numSubpop; p++) {
-						buffer.append(inds.get(p).get(i) + "; "); 
+						buffer.append(inds.get(p).get(i) + "; " + ((SimpleValueFitness)inds.get(p).get(i).getFitness()).getValue() + "; "); 
 						avgFitness[p] += ((SimpleValueFitness)inds.get(p).get(i).getFitness()).getValue();
 					}
 					buffer.append(System.getProperty("line.separator"));

@@ -1,12 +1,8 @@
 package eaglet.algorithm;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
-import eaglet.utils.Utils;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
@@ -16,7 +12,6 @@ import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.MultiLabelMetaLearner;
 import mulan.data.MultiLabelInstances;
-import mulan.data.Statistics;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
@@ -48,11 +43,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 *  Array with all base classifiers of the ensemble 
 	 */
 	private MultiLabelLearner [] Ensemble;
-	
-	/**
-	 *  Binary matrix identifying the ensemble 
-	 */
-	//private byte [][] EnsembleMatrix;
 	
 	/**
 	 * List of individuals identifying the ensemble
@@ -146,6 +136,12 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		return EnsembleInds;
 	}
 	
+	/**
+	 * Gets the ensemble matrix (byte matrix identifying the ensemble).
+	 * It is calculated given the individuals of the ensemble.
+	 * 
+	 * @return Byte ensemble matrix
+	 */
 	public byte[][] getEnsembleMatrix(){
 		byte [][] mat = new byte[numClassifiers][numLabels];
 		
@@ -209,16 +205,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		for(int model=0; model<numClassifiers; model++)
 		{	
 			str += ((MultipBinArrayIndividual)EnsembleInds.get(model)).toString();
-			
-			/*byte [] row = ((MultipBinArrayIndividual)EnsembleInds).getGenotype();
-			for (int label=0; label<numLabels; label++)
-			{	
-				if(row[label]==0)
-				    str+="0 ";
-				else
-					str+="1 ";
-			}
-			*/
 			str+="\n";
 		}
 		return str;
@@ -282,15 +268,8 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 			for(int i = 0; i < numClassifiers; i++)
 			{
 				//Get classifier from table
-				//String s = p + Arrays.toString(EnsembleMatrix[i]);
 				String s = EnsembleInds.get(i).toString();
-				//System.out.println("---" + s);
 				Ensemble[i] = tableClassifiers.get(s);
-				//System.out.println("\t\t" + Ensemble[i]);
-				if(Ensemble[i] == null) {
-					System.out.println("String " + s + " not found in the table.");
-					System.exit(-1);
-				}
 			}
 
 			//Sets wieghts evenly
@@ -300,18 +279,12 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 					voteWeights[i][j] = (double)1 / votesPerLabel[j];
 				}
 			}
-			
-			//System.out.println("Ensemble built! " + Ensemble.length);
-			//System.out.println(Ensemble[0].toString());
 	}
 	
 	@Override
 	protected MultiLabelOutput makePredictionInternal(Instance instance)
 			throws Exception, InvalidDataException 	
-	{				
-		//System.out.println("ENSEMBLE");
-		//System.out.println(Ensemble.toString());;
-		
+	{						
 	    double[] sumConf = new double[numLabels];
 	    double[] sumVotes = new double[numLabels];
 	    
@@ -319,21 +292,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {
-			//System.out.println(Ensemble[model].toString());
-			if(Ensemble == null) {
-				System.out.println("Ensemble is null");
-				System.exit(-1);
-			}
-			//System.out.println("Ensemble length: " + Ensemble.length);
-			//System.out.println("\t"+Ensemble[0].toString());
-			if(Ensemble[model] == null) {
-				System.out.println("Ensemble[model] is null");
-				System.exit(-1);
-			}
-			if(instance == null) {
-				System.out.println("instance is null");
-				System.exit(-1);
-			}
 			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instance);
 			        			
 			for(int label=0, k=0; label < numLabels; label++)
@@ -360,9 +318,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
         	 }
 	     }
 
-	     MultiLabelOutput mlo = null;
-	     
-	     mlo = new MultiLabelOutput(bipartition, sumVotes);
+	     MultiLabelOutput mlo = new MultiLabelOutput(bipartition, sumVotes);
 	    
 	     return mlo;
 	}	 
@@ -385,18 +341,15 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 */
 	public void printEnsemble()
 	{
-		/*
-		for(int i=0; i<EnsembleMatrix.length; i++)
-		{
-			System.out.println(Arrays.toString(EnsembleMatrix[i]));
-		}
-		System.out.println();
-		System.out.println("Ensemble size: " + EnsembleMatrix.length + " base classifiers");
-		*/
 		System.out.println(this.toString());
 	}
 	
-
+	/**
+	 * Obtain confidences of the ensemble for a given instance
+	 * 
+	 * @param instance Instance of the dataset
+	 * @return Array with confidences for the given instance
+	 */
 	protected double [] getConfidences(Instance instance)
 			throws Exception, InvalidDataException 	
 	{				
@@ -420,49 +373,5 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	     }
 
 	     return sumConf;
-	}	 
-	
-	
-	protected MultiLabelOutput makePredictionInternal(Instance instance, double threshold)
-			throws Exception, InvalidDataException 	
-	{				
-	    double[] sumConf = new double[numLabels];
-	    double[] sumVotes = new double[numLabels];
-	    
-	    byte[][] EnsembleMatrix = getEnsembleMatrix();
-	    //Gather votes
-		for(int model = 0; model < numClassifiers; model++) 
-	    {
-			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instance);
-			        	
-			for(int label=0, k=0; label < numLabels; label++)
-			{  
-				if(EnsembleMatrix[model][label]==1)
-				{	
-					//Calculate the product between the confidence/bipartition and the corresponding weight
-					sumConf[label] += subsetMLO.getConfidences()[k] * voteWeights[model][label];
-					sumVotes[label] += subsetMLO.getBipartition()[k] ? voteWeights[model][label] : 0;
-					k++;
-				}
-			}
-	     }
-			  
-	     boolean[] bipartition = new boolean[numLabels];
-			        
-	     for(int i = 0; i < numLabels; i++)
-	     {			         
-	    	 if(sumVotes[i] >= threshold){
-        		 bipartition[i] = true;
-        	 }
-        	 else{
-        		 bipartition[i] = false;
-        	 }
-	     }
-
-	     MultiLabelOutput mlo = null;
-	     
-	     mlo = new MultiLabelOutput(bipartition, sumVotes);
-	    
-	     return mlo;
 	}
 }
