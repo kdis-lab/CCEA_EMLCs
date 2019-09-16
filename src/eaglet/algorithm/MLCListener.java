@@ -375,11 +375,11 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 				bestIndWriter[p].append(System.getProperty("line.separator"));
 				bestIndWriter[p].close();
 				avgIndWriter[p].append(System.getProperty("line.separator"));
-				bestIndWriter[p].close();
+				avgIndWriter[p].close();
 				addIndsWriter[p].append(System.getProperty("line.separator"));
-				bestIndWriter[p].close();
+				addIndsWriter[p].close();
 				remIndsWriter[p].append(System.getProperty("line.separator"));
-				bestIndWriter[p].close();
+				remIndsWriter[p].close();
 			}
 		} 
 		catch (IOException e) {
