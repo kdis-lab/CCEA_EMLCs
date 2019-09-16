@@ -7,7 +7,6 @@ import java.util.Random;
 
 import mulan.data.MultiLabelInstances;
 import net.sf.jclec.IIndividual;
-import net.sf.jclec.binarray.BinArrayIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import weka.core.Instance;
 
