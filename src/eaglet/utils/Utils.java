@@ -417,6 +417,24 @@ public class Utils {
 		return distance;
 	}
 	
+	public static double distance(MultipBinArrayIndividual ind1, MultipBinArrayIndividual ind2, double [] weights, double ratioTrain){
+		double hd = hammingDistance(ind1.getGenotype(), ind2.getGenotype(), weights);
+		
+		return hd;
+		
+		/*
+		double alpha = 1-ratioTrain;
+		alpha = alpha/(1+alpha);
+		
+		int diffData = 1;
+		if(ind1.getSubpop() == ind2.getSubpop()) {
+			diffData = 0;
+		}
+		
+		return alpha*diffData + (1-alpha)*hd;
+		*/
+	}
+	
 	/**
 	 * Get the index with the max value of an array
 	 * 
