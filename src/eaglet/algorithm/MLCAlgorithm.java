@@ -17,8 +17,6 @@ import mulan.data.InvalidDataFormatException;
 import mulan.data.IterativeStratification;
 import mulan.data.MultiLabelInstances;
 import mulan.data.Statistics;
-import mulan.dimensionalityReduction.BinaryRelevanceAttributeEvaluator;
-import mulan.dimensionalityReduction.Ranker;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.algorithm.classic.MultiSGE;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
@@ -28,15 +26,8 @@ import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
-import weka.attributeSelection.ASEvaluation;
-import weka.attributeSelection.CfsSubsetEval;
-import weka.attributeSelection.GreedyStepwise;
 import weka.classifiers.trees.J48;
 import weka.core.Instances;
-import weka.filters.Filter;
-import weka.filters.supervised.attribute.AttributeSelection;
-import weka.filters.unsupervised.attribute.Remove;
-import weka.attributeSelection.ChiSquaredAttributeEval;
 
 /**
  * Class implementing the evolutionary algorithm for the optimization of MLCEnsemble
@@ -210,8 +201,6 @@ public class MLCAlgorithm extends MultiSGE {
 	 * at the communication process.
 	 */
 	int [] currItRem;
-
-	Remove[] filters;
 	
 	/**
 	 * Constructor
@@ -397,7 +386,6 @@ public class MLCAlgorithm extends MultiSGE {
 		datasetValidation = new MultiLabelInstances[numSubpop];
 		currItAdd = new int[numSubpop];
 		currItRem = new int[numSubpop];
-		filters = new Remove[numSubpop];
 		
 		try {
 			//Get seed for random numbers
@@ -464,30 +452,8 @@ public class MLCAlgorithm extends MultiSGE {
 					seed = seed + 1;
 					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), samplingTechnique);
 					
-					System.out.println(m[0].getDataSet().numAttributes());
-
-					ASEvaluation ase = new ChiSquaredAttributeEval();
-					BinaryRelevanceAttributeEvaluator ae = new BinaryRelevanceAttributeEvaluator(ase, m[0], "avg", "dl", "eval");
-					Ranker r = new Ranker();
-		            int[] result = r.search(ae, m[0]);
-		            
-		            int nFeatures = (int)Math.round(m[0].getDataSet().numAttributes() * 0.75);
-		            int[] toKeep = new int[nFeatures + m[0].getNumLabels()];
-		            System.arraycopy(result, 0, toKeep, 0, nFeatures);
-		            int[] labelIndices = m[0].getLabelIndices();
-		            System.arraycopy(labelIndices, 0, toKeep, nFeatures, m[0].getNumLabels());
-		            
-		            filters[i] = new Remove();
-		            filters[i].setAttributeIndicesArray(toKeep);
-		            filters[i].setInvertSelection(true);
-		            filters[i].setInputFormat(m[0].getDataSet());
-		            
-		            MultiLabelInstances currMlData = new MultiLabelInstances( Filter.useFilter(m[0].getDataSet(), filters[i]), m[0].getLabelsMetaData());
-		            
-					System.out.println("; " + currMlData.getDataSet().numAttributes());
-					
-					datasetTrain[i] = currMlData;
-					datasetValidation[i] = currMlData;
+					datasetTrain[i] = m[0];
+					datasetValidation[i] = m[0];
 				}	
 			}
 			
@@ -1010,7 +976,6 @@ public class MLCAlgorithm extends MultiSGE {
 	private EnsembleMLC generateEnsemble(List<IIndividual> members){
 		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers);
 		ensemble.setThreshold(predictionThreshold);
-		ensemble.setFilters(filters);
 		return ensemble;
 	}
 	

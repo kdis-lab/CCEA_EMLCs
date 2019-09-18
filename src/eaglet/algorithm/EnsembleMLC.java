@@ -6,7 +6,6 @@ import java.util.List;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
-import weka.filters.unsupervised.attribute.Remove;
 import mulan.classifier.InvalidDataException;
 import mulan.classifier.ModelInitializationException;
 import mulan.classifier.MultiLabelLearner;
@@ -69,8 +68,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * Validation dataset to calculate weights
 	 */
 	MultiLabelInstances validationSet;
-	
-	Remove [] filters;
 	
 	/**
 	 * Constructor 
@@ -195,10 +192,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		this.validationSet = validationSet;
 	}
 	
-	public void setFilters(Remove[] filters) {
-		this.filters = filters;
-	}
-	
 	
 	@Override
 	public String toString()
@@ -295,18 +288,11 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	    double[] sumConf = new double[numLabels];
 	    double[] sumVotes = new double[numLabels];
 	    
-	    Instance instCopy = null;
-	    
 	    byte[][] EnsembleMatrix = getEnsembleMatrix();
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {
-			int subpop = ((MultipBinArrayIndividual)EnsembleInds.get(model)).getSubpop();
-			filters[subpop].input(instance);
-			filters[subpop].batchFinished();
-			instCopy = filters[subpop].output();
-			
-			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instCopy);
+			MultiLabelOutput subsetMLO = Ensemble[model].makePrediction(instance);
 			        			
 			for(int label=0, k=0; label < numLabels; label++)
 			{  
