@@ -24,7 +24,6 @@ import net.sf.jclec.binarray.MultipBinArraySpecies;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset;
-import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
 import weka.classifiers.trees.J48;
@@ -214,17 +213,6 @@ public class MLCAlgorithm extends MultiSGE {
 		tableClassifiers = new Hashtable<String, MultiLabelLearner>();
 		tabuSet = new HashSet<String>();
 		bestFitness = Double.MIN_VALUE;
-		
-		//J48 j48 = new J48();
-		//j48.setReducedErrorPruning(true);
-		//j48.setUseLaplace(true);
-		//RandomTree rt = new RandomTree();
-		//rt.setKValue((int)Math.round(a));
-<<<<<<< HEAD
-		//learner = new LabelPowerset(new RandomTree());
-=======
-		learner = new LabelPowerset(new RandomTree());
->>>>>>> master
 		learner = null;
 	}
 	
@@ -471,10 +459,6 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			RandomTree rt = new RandomTree();
 			rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
-<<<<<<< HEAD
-=======
-			rt.setMinNum(2);
->>>>>>> master
 			//J48 j48 = new J48();
 			//j48.setMinNumObj(1);
 			learner = new LabelPowerset(rt);
