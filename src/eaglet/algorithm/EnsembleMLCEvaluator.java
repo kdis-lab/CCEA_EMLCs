@@ -79,7 +79,7 @@ public class EnsembleMLCEvaluator {
      	Evaluation results;     	
      	Evaluator eval = new Evaluator();
      	
-     	try {
+     	try {	
 			results = eval.evaluate(ensemble, mlData, measures);
 			fitness = results.getMeasures().get(0).getValue();
 		} catch (Exception e) {

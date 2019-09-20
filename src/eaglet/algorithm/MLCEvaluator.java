@@ -190,6 +190,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 				//Build multilabel learner
 				MultiLabelLearner mll = learner.makeCopy();
 				mll.build(newDatasetTrain);
+				
 
 				MultiLabelInstances newDatasetValidation = null;
 				if(useValidationSet)
@@ -209,7 +210,13 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 				measures.add(new ExampleBasedFMeasure());
 
 		       	Evaluation results;		       
+		       	
+		       	//((LabelPowerset2)mll).setSeed(1);
 		       	results = eval.evaluate(mll, newDatasetValidation, measures);
+		       	//System.out.println("results: " + results);
+		       	//((LabelPowerset2)mll).setSeed(1);
+		       	//results = eval.evaluate(mll, newDatasetValidation, measures);
+		       	//System.out.println("results2: " + results);
 		       	
 	     	  	fitness = results.getMeasures().get(0).getValue();
 	     	  	
