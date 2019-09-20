@@ -220,7 +220,11 @@ public class MLCAlgorithm extends MultiSGE {
 		//j48.setUseLaplace(true);
 		//RandomTree rt = new RandomTree();
 		//rt.setKValue((int)Math.round(a));
+<<<<<<< HEAD
 		//learner = new LabelPowerset(new RandomTree());
+=======
+		learner = new LabelPowerset(new RandomTree());
+>>>>>>> master
 		learner = null;
 	}
 	
@@ -467,6 +471,10 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			RandomTree rt = new RandomTree();
 			rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
+<<<<<<< HEAD
+=======
+			rt.setMinNum(2);
+>>>>>>> master
 			//J48 j48 = new J48();
 			//j48.setMinNumObj(1);
 			learner = new LabelPowerset(rt);
