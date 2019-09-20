@@ -27,6 +27,7 @@ import mulan.classifier.transformation.LabelPowerset;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
 import weka.classifiers.trees.J48;
+import weka.classifiers.trees.RandomTree;
 import weka.core.Instances;
 
 /**
@@ -213,7 +214,13 @@ public class MLCAlgorithm extends MultiSGE {
 		tabuSet = new HashSet<String>();
 		bestFitness = Double.MIN_VALUE;
 		
-		learner = new LabelPowerset(new J48());
+		//J48 j48 = new J48();
+		//j48.setReducedErrorPruning(true);
+		//j48.setUseLaplace(true);
+		//RandomTree rt = new RandomTree();
+		//rt.setKValue((int)Math.round(a));
+		learner = new LabelPowerset(new RandomTree());
+		learner = null;
 	}
 	
 	
@@ -457,6 +464,13 @@ public class MLCAlgorithm extends MultiSGE {
 				}	
 			}
 			
+			RandomTree rt = new RandomTree();
+			rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
+			rt.setMinNum(2);
+			//J48 j48 = new J48();
+			//j48.setMinNumObj(1);
+			learner = new LabelPowerset(rt);
+			
 			//Get number of labels
 			numberLabels = fullDatasetTrain.getNumLabels();
 			
@@ -552,7 +566,9 @@ public class MLCAlgorithm extends MultiSGE {
 				for(int j=0; j<numberLabels; j++){
 					weightsPerLabel[j] = (double)1 / numberLabels;
 				}
-				expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, (int)Math.round(3.33*numberLabels)*maxNumLabelsClassifier, randgen.choose(100));
+				expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, (int)Math.round((10.0/maxNumLabelsClassifier)*numberLabels)*maxNumLabelsClassifier, randgen.choose(100));
+				//expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, 10*numberLabels, randgen.choose(100));
+				
 			}
 			
 
