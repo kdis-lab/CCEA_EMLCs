@@ -7,6 +7,7 @@ import java.util.List;
 
 import eaglet.utils.DatasetTransformation;
 import mulan.classifier.MultiLabelLearner;
+import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.Evaluator;
@@ -72,6 +73,11 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	 *  Indicates if a validation set is used to evaluate the individuals 
 	 */
 	private boolean useValidationSet;
+	
+	/**
+	 * Seed to resolve ties in prediction
+	 */
+	private int seed;
 	
 	
 	/**
@@ -143,6 +149,15 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 	{
 		this.learner = learner;
 	}
+	
+	/**
+	 * Set the seed to resolve ties in prediction
+	 * 
+	 * @param seed Seed
+	 */
+	public void setSeed(int seed) {
+		this.seed = seed;
+	}
 
 	/**
 	 * Sets if a validation set is used to evaluate the individuals
@@ -211,7 +226,7 @@ public class MLCEvaluator extends AbstractParallelEvaluator {
 
 		       	Evaluation results;		       
 		       	
-		       	//((LabelPowerset2)mll).setSeed(1);
+		       	((LabelPowerset2)mll).setSeed(seed);
 		       	results = eval.evaluate(mll, newDatasetValidation, measures);
 		       	//System.out.println("results: " + results);
 		       	//((LabelPowerset2)mll).setSeed(1);

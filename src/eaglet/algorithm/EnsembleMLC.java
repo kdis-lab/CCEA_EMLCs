@@ -11,6 +11,7 @@ import mulan.classifier.ModelInitializationException;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.MultiLabelMetaLearner;
+import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
@@ -65,6 +66,11 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	double [][] voteWeights;
 	
 	/**
+	 * Seed for ties in prediction
+	 */
+	int seed;
+	
+	/**
 	 * Validation dataset to calculate weights
 	 */
 	MultiLabelInstances validationSet;
@@ -114,6 +120,15 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 */
 	public void setThreshold(double threshold){
 		this.threshold = threshold;
+	}
+	
+	/**
+	 * Set the seed to resolve ties in prediction
+	 * 
+	 * @param seed Seed
+	 */
+	public void setSeed(int seed) {
+		this.seed = seed;
 	}
 	
 	/**
@@ -289,6 +304,10 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	    double[] sumVotes = new double[numLabels];
 	    
 	    byte[][] EnsembleMatrix = getEnsembleMatrix();
+	    
+	    for(int model = 0; model < numClassifiers; model++) {
+	    	((LabelPowerset2)Ensemble[model]).setSeed(seed);
+	    }
 	    //Gather votes
 		for(int model = 0; model < numClassifiers; model++) 
 	    {

@@ -24,9 +24,12 @@ import net.sf.jclec.binarray.MultipBinArraySpecies;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset;
+import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
+import weka.classifiers.trees.DecisionStump;
 import weka.classifiers.trees.J48;
+import weka.classifiers.trees.REPTree;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Instances;
 
@@ -433,6 +436,7 @@ public class MLCAlgorithm extends MultiSGE {
 			if(useValidationSet)
 			{
 				for(int i=0; i<numSubpop; i++) {
+					seed = seed + 1;
 					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), samplingTechnique);
 					datasetTrain[i] = m[0];
 					datasetValidation[i] = fullDatasetTrain.clone();
@@ -451,17 +455,18 @@ public class MLCAlgorithm extends MultiSGE {
 				for(int i=0; i<numSubpop; i++) {
 					seed = seed + 1;
 					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), samplingTechnique);
-					
 					datasetTrain[i] = m[0];
 					datasetValidation[i] = m[0];
 				}	
 			}
 			
-			RandomTree rt = new RandomTree();
-			rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
-			//J48 j48 = new J48();
-			//j48.setMinNumObj(1);
-			learner = new LabelPowerset(rt);
+			//RandomTree rt = new RandomTree();
+			//rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
+			J48 j48 = new J48();
+			//j48.setUnpruned(true);
+			//j48.setConfidenceFactor((float) 0.05);
+			learner = new LabelPowerset2(j48);
+			((LabelPowerset2)learner).setSeed((int)seed);
 			
 			//Get number of labels
 			numberLabels = fullDatasetTrain.getNumLabels();
@@ -489,6 +494,7 @@ public class MLCAlgorithm extends MultiSGE {
 			((MLCEvaluator) evaluator).setUseValidationSet(useValidationSet);
 			((MLCEvaluator) evaluator).setDatasetTrain(datasetTrain);
 			((MLCEvaluator) evaluator).setDatasetValidation(datasetValidation);
+			((MLCEvaluator) evaluator).setSeed((int)seed);
 			
 
 			// Set genetic operator settings
@@ -619,7 +625,7 @@ public class MLCAlgorithm extends MultiSGE {
 				allInds.addAll(bset.get(p));
 			}
 			
-			System.out.println("antes: " + allInds.size());
+			//System.out.println("antes: " + allInds.size());
 			if(bestEnsemble != null) {
 				for(IIndividual ind : bestEnsemble.getEnsembleInds()) {
 					if(!contains(allInds, ind)) {
@@ -631,7 +637,7 @@ public class MLCAlgorithm extends MultiSGE {
 				//allInds.addAll(bestEnsemble.getEnsembleInds());
 				//allInds = Utils.removeDuplicated(allInds);
 			}
-			System.out.println("despues: " + allInds.size());
+			//System.out.println("despues: " + allInds.size());
 			
 			//Create an ensemble with all individuals
 			EnsembleMLC currentEnsemble = null;
@@ -745,7 +751,7 @@ public class MLCAlgorithm extends MultiSGE {
 				if(!containsComb(bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()), (MultipBinArrayIndividual)ensemble.get(i))) {
 					if(randgen.coin((generation*1.0)/maxOfGenerations)) {
 						bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()).add(ensemble.get(i));
-						System.out.println("Add it!");
+						//System.out.println("Add it!");
 					}
 				}
 			}
@@ -984,6 +990,7 @@ public class MLCAlgorithm extends MultiSGE {
 	private EnsembleMLC generateEnsemble(List<IIndividual> members){
 		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers);
 		ensemble.setThreshold(predictionThreshold);
+		ensemble.setSeed((int)seed);
 		return ensemble;
 	}
 	
