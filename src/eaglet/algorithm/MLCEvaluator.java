@@ -26,7 +26,7 @@ import net.sf.jclec.fitness.ValueFitnessComparator;
  * @author Jose M. Moyano
  *
  */
-public class MLCEvaluator extends AbstractParallelEvaluator {
+public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 
 	/**
 	 * Serialization constant

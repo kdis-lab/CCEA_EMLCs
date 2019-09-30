@@ -27,9 +27,7 @@ import mulan.classifier.transformation.LabelPowerset;
 import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
-import weka.classifiers.trees.DecisionStump;
 import weka.classifiers.trees.J48;
-import weka.classifiers.trees.REPTree;
 import weka.classifiers.trees.RandomTree;
 import weka.core.Instances;
 
@@ -578,9 +576,10 @@ public class MLCAlgorithm extends MultiSGE {
 			bset.add(p, prov);
 
 			// Evaluate individuals
-			((MLCEvaluator)evaluator).evaluate(bset.get(p));
+			//((MLCEvaluator)evaluator).evaluate(bset.get(p));
 		}
 		
+		((MLCEvaluator)evaluator).evaluateMultip(bset);
 		// Do Control
 		doControl();
 	}
@@ -757,9 +756,10 @@ public class MLCAlgorithm extends MultiSGE {
 			}
 		}
 		
+		((MLCEvaluator)evaluator).evaluateMultip(bset);
 		for(int p=0; p<numSubpop; p++) {
 			//Evaluate new added individuals
-			((MLCEvaluator)evaluator).evaluate(bset.get(p));
+			//((MLCEvaluator)evaluator).evaluate(bset.get(p));
 			
 			//If more individuals than allowed, select individuals
 			if(bset.get(p).size() > subpopSize) {
@@ -897,6 +897,7 @@ public class MLCAlgorithm extends MultiSGE {
 			data = mlData.getDataSet();
 			newData = new Instances(data);
 			newData.removeAll(newData);
+			System.out.println("newData.size(): " + newData.numInstances());
 			
 			for(int i=0; i<data.numInstances(); i++) {
 				newData.add(data.get(randgen.choose(data.numInstances())));
@@ -911,15 +912,72 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			break;
 		case pct67:
+			data = mlData.getDataSet();
+			newData = new Instances(data);
+			newData.removeAll(newData);
+			int [] indexes = new int[data.numInstances()];
+			for(int i=0; i<data.numInstances(); i++) {
+				indexes[i] = i;
+			}
+			int r, aux;
+			for(int i=0; i<data.numInstances(); i++) {
+				r = randgen.choose(data.numInstances());
+				aux = indexes[i];
+				indexes[i] = indexes[r];
+				indexes[r] = aux;
+			}
+			int limit = (int)Math.round(data.numInstances()*.67);
+			
+			for(int i=0; i<limit; i++) {
+				newData.add(data.get(indexes[i]));
+			}
+			
+			try {
+				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
+			} catch (InvalidDataFormatException e1) {
+				e1.printStackTrace();
+			}
+			
+			datasets[1] = null;
+			/*
 			strat = new IterativeStratification(seed);
 			folds = strat.stratify(mlData, 3);
 			
 			datasets[0] = folds[0].clone();
 			datasets[0].getDataSet().addAll(folds[1].getDataSet());
-			datasets[1] = folds[2].clone();			
+			datasets[1] = folds[2].clone();	
+			*/		
 			break;
 			
 		case pct75:
+			data = mlData.getDataSet();
+			newData = new Instances(data);
+			newData.removeAll(newData);
+			indexes = new int[data.numInstances()];
+			for(int i=0; i<data.numInstances(); i++) {
+				indexes[i] = i;
+			}
+			for(int i=0; i<data.numInstances(); i++) {
+				r = randgen.choose(data.numInstances());
+				aux = indexes[i];
+				indexes[i] = indexes[r];
+				indexes[r] = aux;
+			}
+			limit = (int)Math.round(data.numInstances()*.75);
+			
+			for(int i=0; i<limit; i++) {
+				newData.add(data.get(indexes[i]));
+			}
+			
+			try {
+				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
+			} catch (InvalidDataFormatException e1) {
+				e1.printStackTrace();
+			}
+			
+			datasets[1] = null;
+			
+			/*
 			strat = new IterativeStratification(seed);
 			folds = strat.stratify(mlData, 4);
 			
@@ -927,10 +985,38 @@ public class MLCAlgorithm extends MultiSGE {
 			datasets[0].getDataSet().addAll(folds[1].getDataSet());
 			datasets[0].getDataSet().addAll(folds[2].getDataSet());
 			datasets[1] = folds[3].clone();
+			*/
 			break;
 		
 		case pct80:
-			strat = new IterativeStratification(seed);
+			data = mlData.getDataSet();
+			newData = new Instances(data);
+			newData.removeAll(newData);
+			indexes = new int[data.numInstances()];
+			for(int i=0; i<data.numInstances(); i++) {
+				indexes[i] = i;
+			}
+			for(int i=0; i<data.numInstances(); i++) {
+				r = randgen.choose(data.numInstances());
+				aux = indexes[i];
+				indexes[i] = indexes[r];
+				indexes[r] = aux;
+			}
+			limit = (int)Math.round(data.numInstances()*.80);
+			
+			for(int i=0; i<limit; i++) {
+				newData.add(data.get(indexes[i]));
+			}
+			
+			try {
+				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
+			} catch (InvalidDataFormatException e1) {
+				e1.printStackTrace();
+			}
+			
+			datasets[1] = null;
+			
+			/*strat = new IterativeStratification(seed);
 			folds = strat.stratify(mlData, 5);
 			
 			datasets[0] = folds[0].clone();
@@ -938,6 +1024,7 @@ public class MLCAlgorithm extends MultiSGE {
 			datasets[0].getDataSet().addAll(folds[2].getDataSet());
 			datasets[0].getDataSet().addAll(folds[3].getDataSet());
 			datasets[1] = folds[4].clone();
+			*/
 			break;
 		
 		case outOfBag:

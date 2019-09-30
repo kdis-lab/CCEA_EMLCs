@@ -28,6 +28,13 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 		super();
 	}
 	
+	/**
+	 * Constructor with subpopulation id
+	 */
+	public RandomIndividualCreator(int p)
+	{
+		super(p);
+	}
 	
 	@Override
 	public List<IIndividual> provide(int numberOfIndividuals)
@@ -54,6 +61,32 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 		// Returns result
 		return createdBuffer;
 	}
+	
+	public List<MultipBinArrayIndividual> provideMultip(int numberOfIndividuals)
+	{
+		// Set numberOfIndividuals
+		this.numberOfIndividuals = numberOfIndividuals;
+		// Result list
+		List<MultipBinArrayIndividual> createdBuffer = new ArrayList<MultipBinArrayIndividual> (numberOfIndividuals);
+		// Prepare process
+		prepareCreation();
+		// Provide individuals
+		MultipBinArrayIndividual ind;
+		boolean exist;
+		for (createdCounter=0; createdCounter<numberOfIndividuals; createdCounter++) {
+			do{
+				ind = species.createIndividual(createGenotype(), p);
+				exist = Utils.exists(ind, createdBuffer);
+			}while(exist);
+
+			createdBuffer.add(ind);
+		}
+		
+		
+		// Returns result
+		return createdBuffer;
+	}
+
 
 	
 	/**

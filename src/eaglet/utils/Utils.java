@@ -474,6 +474,16 @@ public class Utils {
 		return false;
 	}
 	
+	public static boolean exists(MultipBinArrayIndividual refInd, List<MultipBinArrayIndividual> list){
+		for(MultipBinArrayIndividual ind : list){
+			if(hammingDistance(refInd.getGenotype(), ind.getGenotype()) == 0){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	/**
 	 * Remove duplicated individuals in a list
 	 * 
