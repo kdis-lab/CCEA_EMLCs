@@ -121,7 +121,7 @@ public class RandomCrossover extends MultipBinArrayRecombinator {
 			listSon1.addAll(list2);
 			listSon2.addAll(list1);
 		}
-				
+		
 		//Create sons genotypes
 		byte [] s1_genome = new byte[gl];
 		byte [] s2_genome = new byte[gl];

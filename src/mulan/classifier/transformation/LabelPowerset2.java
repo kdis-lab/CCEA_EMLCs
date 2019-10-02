@@ -26,7 +26,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.transformation.TransformationBasedMultiLabelLearner;
-import mulan.core.Util;
 import mulan.core.Util2;
 import mulan.data.LabelSet;
 import mulan.data.MultiLabelInstances;
@@ -36,15 +35,22 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 /**
- * Class that implements a label powerset classifier <p>
+ * Class that implements a label powerset classifier.
+ * It has been modified in order to not depend of random numbers to give prediction;
+ * or at least try to give always the same prediction.
  *
  * @author Grigorios Tsoumakas 
  * @author Robert Friberg
- * @version 2012.02.27
+ * @author Jose M. Moyano
  */
 public class LabelPowerset2 extends TransformationBasedMultiLabelLearner {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = -7511071105898759450L;
+	
+	/**
      * The confidence values for each label are calculated in the following ways
      * 0: Confidence 0 1/0 for all labels, (1 if label true, 0 if label is false)
      * 1: Confidence of x/(1-x) for all labels, where x is the probability of the winning class (x if label true, (1-x) if label is false)

@@ -20,13 +20,15 @@
  */
 package mulan.core;
 
-import java.util.Arrays;
 import java.util.Random;
 
 /**
  * Class which provides various utility methods.
+ * It has been modified in order to not depend of random numbers to give prediction;
+ * or at least try to give always the same prediction.
  * 
  * @author Jozef Vilcek
+ * @author Jose M. Moyano
  */
 public class Util2 {
 
@@ -65,7 +67,6 @@ public class Util2 {
         if (counter == 1) {
             return maxIndexes[0];
         } else {
-        	//System.out.println(Arrays.toString(array));
             int choose = rand.nextInt(counter);
             return maxIndexes[choose];
         }
