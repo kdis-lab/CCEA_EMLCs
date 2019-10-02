@@ -16,6 +16,11 @@ public class RandomMutator extends EagletMutator {
 	private static final long serialVersionUID = 2455293830055566959L;
 	
 	/**
+	 * Number of subpops
+	 */
+	int nSubpops;
+	
+	/**
 	 * Constructor
 	 */
 	public RandomMutator()
@@ -60,6 +65,23 @@ public class RandomMutator extends EagletMutator {
 		mgenome[mp2] = aux;
 		
 		sonsBuffer.add(species.createIndividual(mgenome, mutant.getSubpop()));
+	}
+	
+	public void setNumSubpopulations(int n) {
+		this.nSubpops = n;
+	}
+	
+	public MultipBinArrayIndividual mutateInd(MultipBinArrayIndividual mutant) {
+		int mSubpop = mutant.getSubpop();
+		int newSubpop;
+
+		do{
+			newSubpop = randgen.choose(0, nSubpops);
+		}while(newSubpop != mSubpop);
+		
+		mutant.setSubpop(newSubpop);
+		
+		return mutant;
 	}
 	
 }

@@ -2,6 +2,7 @@ package eaglet.individualCreator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import eaglet.utils.Utils;
 import net.sf.jclec.IIndividual;
@@ -100,5 +101,5 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 
 		return genotype;
 	}
-
+	
 }

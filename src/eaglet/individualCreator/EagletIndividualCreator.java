@@ -148,5 +148,33 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 
 		return genotype;
 	}
+	
+	public byte [] createRandomGenotype(int label)
+	{
+		byte [] genotype = new byte[numLabels];
+
+		int numLabelsClassifier;
+		
+		if(variable)
+		{
+			numLabelsClassifier = randgen.choose(minNumLabelsClassifier, maxNumLabelsClassifier+1);
+		}
+		else
+		{
+			numLabelsClassifier = maxNumLabelsClassifier;
+		}
+
+		genotype[label] = 1;
+        int rand, active = 1;
+		do{
+            rand = randgen.choose(0, numLabels);
+            if(genotype[rand] != 1){
+                genotype[rand] = 1;
+                active++;
+            }
+        }while(active < numLabelsClassifier);
+
+		return genotype;
+	}
 
 }

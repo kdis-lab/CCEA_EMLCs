@@ -1,5 +1,6 @@
 package eaglet.algorithm;
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -13,6 +14,10 @@ import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.MultiLabelMetaLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;
+import mulan.evaluation.Evaluation;
+import mulan.evaluation.Evaluator;
+import mulan.evaluation.measure.ExampleBasedFMeasure;
+import mulan.evaluation.measure.Measure;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
@@ -136,9 +141,18 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * 
 	 * @return Number of classifiers
 	 */
-	public int getnumClassifiers()
+	public int getNumClassifiers()
 	{
-		return numClassifiers;
+		return EnsembleInds.size();
+	}
+	
+	/**
+	 * Sets the number of classifiers of the ensemble
+	 * 
+	 * @param n
+	 */
+	public void setNumClassifiers(int n) {
+		this.numClassifiers = n;
 	}
 	
 	/**
@@ -149,6 +163,15 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	public List<IIndividual> getEnsembleInds()
 	{
 		return EnsembleInds;
+	}
+	
+	public List<MultipBinArrayIndividual> getEnsembleIndsMultip()
+	{
+		List<MultipBinArrayIndividual> members = new ArrayList<MultipBinArrayIndividual>();
+		for(IIndividual ind : EnsembleInds) {
+			members.add((MultipBinArrayIndividual)ind);
+		}
+		return members;
 	}
 	
 	/**
@@ -393,4 +416,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 
 	     return sumConf;
 	}
+	
+	
+	
 }

@@ -536,7 +536,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 				file.write("\n"+m.getName()+": "+df4.format(m.getValue()));
 				cab=cab+m.getName()+", ";				
 		    }
-			cab=cab+"number of evaluations, execution time, evaluation time\n";
+			cab=cab+"number of evaluations, execution time, evaluation time, nClassifiers\n";
 			file.write(System.getProperty("line.separator"));
 			
 			// Global report
@@ -565,7 +565,8 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 //			bw.write((algorithm.getEvaluator().getEvaluationTime() / 1000.0) + ",");
 			bw.write((((double)(endTime-initTime)) / 1000.0) + ",");
 			bw.write(((evaluateTime) / 1000.0) + ",");
-			bw.write(algorithm.getNumberOfEvaluatedIndividuals() + " ");
+			bw.write(algorithm.getNumberOfEvaluatedIndividuals() + ", ");
+			bw.write(algorithm.getEnsemble().getNumClassifiers() + ", ");
 			
 			file.write(System.getProperty("line.separator") + "Ensemble of classifiers" + System.getProperty("line.separator"));
 			file.write(classifier.toString());
