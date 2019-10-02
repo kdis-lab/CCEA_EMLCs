@@ -39,6 +39,15 @@ public class RandomMutator extends EagletMutator {
 		}
 	}
 	
+	/**
+	 * Sets the number of subpopulations
+	 * 
+	 * @param n Number of subpopulations
+	 */
+	public void setNumSubpopulations(int n) {
+		this.nSubpops = n;
+	}
+	
 	
 	@Override
 	protected void mutateNext() {
@@ -67,11 +76,14 @@ public class RandomMutator extends EagletMutator {
 		sonsBuffer.add(species.createIndividual(mgenome, mutant.getSubpop()));
 	}
 	
-	public void setNumSubpopulations(int n) {
-		this.nSubpops = n;
-	}
-	
-	public MultipBinArrayIndividual mutateInd(MultipBinArrayIndividual mutant) {
+	/**
+	 * Mutate the subpopulation of a given individual.
+	 * It changes its subpopulation index for other different index
+	 * 
+	 * @param mutant Individual to mutate
+	 * @return Mutated individual
+	 */
+	public MultipBinArrayIndividual mutateIndSubpop(MultipBinArrayIndividual mutant) {
 		int mSubpop = mutant.getSubpop();
 		int newSubpop;
 

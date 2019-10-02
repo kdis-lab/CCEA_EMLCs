@@ -906,7 +906,7 @@ public class MLCAlgorithm extends MultiSGE {
 					}
 					
 					if(randgen.coin(probMutCom)) {
-						newInds.add(((RandomMutator) mutator.getDecorated()).mutateInd((MultipBinArrayIndividual)ind));
+						newInds.add(((RandomMutator) mutator.getDecorated()).mutateIndSubpop((MultipBinArrayIndividual)ind));
 					}
 				}
 			}
