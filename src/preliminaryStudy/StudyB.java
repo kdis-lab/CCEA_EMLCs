@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
-import eaglet.algorithm.EnsembleMLC_Multip;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;
@@ -19,6 +18,7 @@ import weka.core.Utils;
 
 import preliminaryStudy.StudyUtils;
 import preliminaryStudy.StudyUtils.EvalType;
+import preliminaryStudy.algorithm.EnsembleMLC_Multip;
 
 public class StudyB {
 	

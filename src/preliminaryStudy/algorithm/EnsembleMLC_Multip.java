@@ -1,4 +1,4 @@
-package eaglet.algorithm;
+package preliminaryStudy.algorithm;
 
 import java.util.Hashtable;
 import java.util.List;
@@ -16,6 +16,10 @@ import mulan.data.MultiLabelInstances;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
 /** 
+ * Class that implements the EnsembleMLC class but using MultipBinArrayIndividuals.
+ * 
+ * It is used only for preliminary studies
+ * 
  * @author Jose M. Moyano
  *
  */
@@ -91,6 +95,11 @@ public class EnsembleMLC_Multip extends MultiLabelMetaLearner {
 		this.tableClassifiers = tableClassifiers;
 	}
 	
+	/**
+	 * Copy constructor
+	 * 
+	 * @param e Ensemble to copy
+	 */
 	public EnsembleMLC_Multip(EnsembleMLC_Multip e)
 	{
 		super(e.baseLearner);

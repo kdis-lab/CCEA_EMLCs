@@ -5,7 +5,6 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Random;
 
-import eaglet.algorithm.EnsembleMLC_Multip;
 import eaglet.utils.Utils;
 import mulan.classifier.MultiLabelLearner;
 import mulan.data.MultiLabelInstances;
@@ -16,6 +15,7 @@ import mulan.evaluation.measure.Measure;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
+import preliminaryStudy.algorithm.EnsembleMLC_Multip;
 
 /** 
  * @author Jose M. Moyano
