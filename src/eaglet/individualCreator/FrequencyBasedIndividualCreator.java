@@ -71,33 +71,21 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 		return createdBuffer;
 	}
 	
-	public List<IIndividual> generateIndividuals(int numberOfIndividuals){
-		int toShare;
-		
-		/**
-		 * TO-DO
-		 * 
-		 * Creation of k variable individuals 
-		 * 
-		 * How to share the labels among individuals? First share the min and then the rest?
-		 */
-//		if(variable){
-//			toShare = randgen.choose(minNumLabelsClassifier*numberOfIndividuals, maxNumLabelsClassifier* numberOfIndividuals);
-//		}
-//		else{
-//			toShare = maxNumLabelsClassifier * numberOfIndividuals;
-//		}
-	
-	
+	/**
+	 * Generate individuals.
+	 * 
+	 * @param numberOfIndividuals Number of individuals
+	 * @return List of generated IIndividuals
+	 */
+	public List<IIndividual> generateIndividuals(int numberOfIndividuals){	
 		//Total number of active bits to share
-		toShare = maxNumLabelsClassifier * numberOfIndividuals;
+		int toShare = k * numberOfIndividuals;
 		
 		//Number of bits shared to each label
 		int [] shared = new int[numLabels];
 		
 		//Indicates if each label has reached the max number of active bits
 		boolean [] maxsReached = new boolean[numLabels];
-		//System.out.println("nLabels: " + numLabels);
 		
 		//Share at least one active bit to each label
 		for(int l=0; l<numLabels; l++){
@@ -128,7 +116,6 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 					//Calculate corresponding number of active bits to label l
 					corresponding = (int) Math.round(ratio[l] * remaining);
 					
-					
 					if((shared[l] + corresponding) > numberOfIndividuals){
 						//If max of this label is reached, only add until max
 						//corresponding = shared[l] - corresponding;
@@ -150,15 +137,12 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 			
 		}while(iMaxReached == true);
 		
-		//System.out.println("shared1: " + Arrays.toString(shared));
 		
 		//Adjust if there has been more or less shared active bits
 		if(toShare > 0){
-			//System.out.println("Remains " + toShare + " bits to share.");
 			shared = addToMinority(shared, toShare);
 		}
 		else if(toShare < 0){
-			//System.out.println("Shared " + Math.abs(toShare) + " bits more than allowed.");
 			shared = removeFromMajority(shared, Math.abs(toShare));
 		}
 		
@@ -167,8 +151,7 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 		for(int i=0; i<numberOfIndividuals; i++){
 			individuals.put(i, new ArrayList<Integer>());
 		}
-		
-		
+				
 		int [] v;
 		int i;
 		ArrayList<Integer> currentInd;
@@ -184,63 +167,61 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 
 			do{
 				currentInd = individuals.get(v[i]);
-				if(currentInd.size() < maxNumLabelsClassifier){
+				if(currentInd.size() < k){
 					currentInd.add(label);
 					individuals.put(v[i], currentInd);
 					shared[label]--;
 				}
 				
 				i++;
-				
-				if((i >= numberOfIndividuals) && (shared[label] > 0)){
-					do{
-						ArrayList<Integer> ind1 = null;
-						ArrayList<Integer> ind2 = null;
-						
-						//Look for an individual with active < k
-						for(int j=0; j<numberOfIndividuals; j++){
-							currentInd = individuals.get(v[j]);
-							if(currentInd.size() < maxNumLabelsClassifier){
-								ind1 = currentInd;
-								break;
-							}
-						}
-						
-						//Look for an individual with active = k and not label
-						for(int j=0; j<numberOfIndividuals; j++){
-							currentInd = individuals.get(v[j]);
-							if((currentInd.size() == maxNumLabelsClassifier) && (!currentInd.contains(label))){
-								ind2 = currentInd;
-								break;
-							}
-						}
-						
-						
-						if(ind2 == null) {
-							int r;
-							do {
-								r = randgen.choose(0, numLabels);
-							}while(ind1.contains(r));
-							
-							ind1.add(r);
-						}
-						else {
-							//Swap a label from ind2 to ind1 and add current label to ind2
-							for(int j=0; j<ind2.size(); j++){
-								int [] v2 = Utils.shuffledArray(ind2.size(), randgen.choose(100));
-								if(!ind1.contains(ind2.get(v2[j]))){
-									ind1.add(ind2.get(v2[j]));
-									ind2.remove(v2[j]);
-									ind2.add(label);
-									shared[label]--;
-									break;
-								}
-							}
-						}
-						
-					}while(shared[label] > 0);	
-				}
 			}while((shared[label] > 0) && (i<numberOfIndividuals));
+			
+			if(shared[label] > 0){
+				do{
+					ArrayList<Integer> ind1 = null;
+					ArrayList<Integer> ind2 = null;
+					
+					//Look for an individual with active < k
+					for(int j=0; j<numberOfIndividuals; j++){
+						currentInd = individuals.get(v[j]);
+						if(currentInd.size() < k){
+							ind1 = currentInd;
+							break;
+						}
+					}
+					
+					//Look for an individual with active = k and not label
+					for(int j=0; j<numberOfIndividuals; j++){
+						currentInd = individuals.get(v[j]);
+						if((currentInd.size() == k) && (!currentInd.contains(label))){
+							ind2 = currentInd;
+							break;
+						}
+					}
+
+					if(ind2 == null) {
+						int r;
+						do {
+							r = randgen.choose(0, numLabels);
+						}while(ind1.contains(r));
+						
+						ind1.add(r);
+					}
+					else {
+						//Swap a label from ind2 to ind1 and add current label to ind2
+						for(int j=0; j<ind2.size(); j++){
+							int [] v2 = Utils.shuffledArray(ind2.size(), randgen.choose(100));
+							if(!ind1.contains(ind2.get(v2[j]))){
+								ind1.add(ind2.get(v2[j]));
+								ind2.remove(v2[j]);
+								ind2.add(label);
+								shared[label]--;
+								break;
+							}
+						}
+					}
+				}while(shared[label] > 0);	
+			}
 		}
 		
 		
@@ -330,7 +311,6 @@ public class FrequencyBasedIndividualCreator extends EagletIndividualCreator {
 			
 			if(minIndices.size() <= n){
 				for(int i : minIndices){
-					//System.out.println("i: " + i + " ; ");
 					array[i]++;
 					n--;
 				}

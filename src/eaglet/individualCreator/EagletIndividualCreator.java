@@ -23,19 +23,9 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 	protected int numLabels;
 	
 	/**
-	 *  Max number of active labels in the base classifier 
+	 *  Number of active labels in the base classifier 
 	 */
-	protected int maxNumLabelsClassifier;
-	
-	/**
-	 *  Number of min active labels in the base classifier 
-	 */
-	protected int minNumLabelsClassifier = 2;
-
-	/**
-	 *  Indicates if the num of active bits is variable in each individual 
-	 */
-	protected boolean variable;
+	protected int k;
 	
 	
 	/**
@@ -46,6 +36,11 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 		super();
 	}
 	
+	/**
+	 * Constructor with subpopulation index
+	 * 
+	 * @param p Index of subpopulation
+	 */
 	public EagletIndividualCreator(int p)
 	{
 		super();
@@ -73,33 +68,68 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 	}
 	
 	/**
-	 * Sets the max number of labels per classifier
+	 * Sets the number of active labels per classifier
 	 * 
-	 * @param numLabelsClassifier Max number of labels
+	 * @param k Number of active labels
 	 */
-	public void setMaxNumLabelsClassifier(int numLabelsClassifier)
+	public void setK(int k)
 	{
-		this.maxNumLabelsClassifier = numLabelsClassifier;
+		this.k = k;
 	}
 	
 	/**
-	 * Gets the max number of labels per classifier
+	 * Gets the number of active labels per classifier
 	 * 
-	 * @return Max number of labels
+	 * @return Number of active labels at each classifier
 	 */
-	public int getMaxNumLabelsClassifier()
+	public int getK()
 	{
-		return maxNumLabelsClassifier;
+		return k;
+	}
+	
+	
+	/**
+	 * Generates a random genotype
+	 * 
+	 * @return Random genotype
+	 */
+	public byte [] createRandomGenotype()
+	{
+		byte [] genotype = new byte[numLabels];
+
+        int rand, active = 0;
+		do{
+            rand = randgen.choose(0, numLabels);
+            if(genotype[rand] != 1){
+                genotype[rand] = 1;
+                active++;
+            }
+        }while(active < k);
+
+		return genotype;
 	}
 	
 	/**
-	 * Sets if the number of labels is variable in each classifier
-	 * 
-	 * @param variable True if the number of labels is variable and false otherwise
+	 * Generates an almost random genotype. It will include at least the indicated label.
+	 * The rest of active labels are selected randomly.
+	 * @param label
+	 * @return
 	 */
-	public void setVariable(boolean variable)
+	public byte [] createRandomGenotype(int label)
 	{
-		this.variable = variable;
+		byte [] genotype = new byte[numLabels];
+
+		genotype[label] = 1;
+        int rand, active = 1;
+		do{
+            rand = randgen.choose(0, numLabels);
+            if(genotype[rand] != 1){
+                genotype[rand] = 1;
+                active++;
+            }
+        }while(active < k);
+
+		return genotype;
 	}
 	
 	/**
@@ -115,66 +145,6 @@ public abstract class EagletIndividualCreator extends MultipBinArrayCreator {
 				createdBuffer.add(ind);
 			}
 		}
-	}
-	
-	/**
-	 * Generates a random genotype
-	 * 
-	 * @return Random genotype
-	 */
-	public byte [] createRandomGenotype()
-	{
-		byte [] genotype = new byte[numLabels];
-
-		int numLabelsClassifier;
-		
-		if(variable)
-		{
-			numLabelsClassifier = randgen.choose(minNumLabelsClassifier, maxNumLabelsClassifier+1);
-		}
-		else
-		{
-			numLabelsClassifier = maxNumLabelsClassifier;
-		}
-
-        int rand, active = 0;
-		do{
-            rand = randgen.choose(0, numLabels);
-            if(genotype[rand] != 1){
-                genotype[rand] = 1;
-                active++;
-            }
-        }while(active < numLabelsClassifier);
-
-		return genotype;
-	}
-	
-	public byte [] createRandomGenotype(int label)
-	{
-		byte [] genotype = new byte[numLabels];
-
-		int numLabelsClassifier;
-		
-		if(variable)
-		{
-			numLabelsClassifier = randgen.choose(minNumLabelsClassifier, maxNumLabelsClassifier+1);
-		}
-		else
-		{
-			numLabelsClassifier = maxNumLabelsClassifier;
-		}
-
-		genotype[label] = 1;
-        int rand, active = 1;
-		do{
-            rand = randgen.choose(0, numLabels);
-            if(genotype[rand] != 1){
-                genotype[rand] = 1;
-                active++;
-            }
-        }while(active < numLabelsClassifier);
-
-		return genotype;
 	}
 
 }

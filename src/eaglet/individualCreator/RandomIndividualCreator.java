@@ -2,7 +2,6 @@ package eaglet.individualCreator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import eaglet.utils.Utils;
 import net.sf.jclec.IIndividual;
@@ -63,6 +62,12 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 		return createdBuffer;
 	}
 	
+	/**
+	 * Provide a population of MultiipBinArrayIndividual
+	 * 
+	 * @param numberOfIndividuals Number of individuals to provide
+	 * @return List with individuals
+	 */
 	public List<MultipBinArrayIndividual> provideMultip(int numberOfIndividuals)
 	{
 		// Set numberOfIndividuals
@@ -83,8 +88,6 @@ public class RandomIndividualCreator extends EagletIndividualCreator {
 			createdBuffer.add(ind);
 		}
 		
-		
-		// Returns result
 		return createdBuffer;
 	}
 

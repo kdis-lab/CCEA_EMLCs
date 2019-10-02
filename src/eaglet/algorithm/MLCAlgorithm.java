@@ -527,7 +527,7 @@ public class MLCAlgorithm extends MultiSGE {
 			prune = configuration.getBoolean("prune-ensemble");
 			
 			// Set provider settings
-			((EagletIndividualCreator) provider).setMaxNumLabelsClassifier(maxNumLabelsClassifier);
+			((EagletIndividualCreator) provider).setK(maxNumLabelsClassifier);
 			((EagletIndividualCreator) provider).setNumLabels(numberLabels);
 						
 			// Set evaluator settings
