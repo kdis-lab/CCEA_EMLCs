@@ -106,7 +106,7 @@ public class StudyA {
 							//System.out.println("\t\t\tGenerating ensemble.");
 							
 							EnsembleGenerator eGen = new EnsembleGenerator();
-							EnsembleMLC_Multip ensemble = eGen.generateAndBuildEnsemble(pop, fullTrainData, numClassifiers, b, learner, tableClassifiers, false);
+							EnsembleMLC_Multip ensemble = eGen.generateAndBuildEnsemble(pop, fullTrainData, numClassifiers, b, learner, tableClassifiers, false, seed);
 							
 							//ensemble.printEnsemble();
 							

@@ -14,6 +14,9 @@ import eaglet.mutator.EagletMutator;
 import eaglet.mutator.RandomMutator;
 import eaglet.recombinator.RandomCrossover;
 import eaglet.utils.Utils;
+import eaglet.utils.Utils.CommunicationType;
+import eaglet.utils.Utils.EvalType;
+import eaglet.utils.Utils.SamplingTechnique;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.IterativeStratification;
 import mulan.data.MultiLabelInstances;
@@ -28,7 +31,6 @@ import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.binarray.MultipBinArraySpecies;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import mulan.classifier.MultiLabelLearner;
-import mulan.classifier.transformation.LabelPowerset;
 import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
@@ -56,14 +58,9 @@ public class MLCAlgorithm extends MultiSGE {
 	private MultiLabelInstances fullDatasetTrain;
 
 	/**
-	 *  Dataset to build the base classifiers 
+	 *  Datasets to build the base classifiers 
 	 */
-	private MultiLabelInstances[] datasetTrain;
-	
-	/**
-	 *  Dataset to evaluate the individuals 
-	 */
-	private MultiLabelInstances[] datasetValidation;
+	private MultiLabelInstances[] datasetsTrain;
 	
 	/**
 	 *  Dataset to evaluate the final ensemble 
@@ -76,9 +73,9 @@ public class MLCAlgorithm extends MultiSGE {
 	int numberLabels;
 	
 	/**
-	 *  Max number of active labels in each base classifier 
+	 *  Number of active labels at each base classifier
 	 */
-	private int maxNumLabelsClassifier;
+	private int k;
 	
 	/**
 	 *  Number of base classifiers of the ensemble 
@@ -107,7 +104,7 @@ public class MLCAlgorithm extends MultiSGE {
 	
 	/**
 	 *  Table storing individuals that have been removed or added to a subpopulation
-	 *  	in the communication process.
+	 *  	in the exchange communication process.
 	 *  It avoids from continuously adding the same individuals that previously we removed.
 	 */
 	private HashSet<String> tabuSet;
@@ -118,16 +115,9 @@ public class MLCAlgorithm extends MultiSGE {
 	private EnsembleMLC ensemble;
 	
 	/**
-	 *  3D array including phi matrices with correlations between labels.
-	 *  First dimension indicates the subpopulation.
+	 * Evalaution typa of individuals in the population
 	 */
-	private double [][][] phiMatrix;
-	
-	/**
-	 *  Indicates if a validation set is used to evaluate the individuals
-	 *  If true, individuals are evaluated over different set which they were trained
-	 */
-	private boolean useValidationSet;
+	Utils.EvalType evalType;
 	
 	/**
 	 * Fitness of the best ensemble at the moment 
@@ -155,12 +145,9 @@ public class MLCAlgorithm extends MultiSGE {
 	private BettersSelector bettersSelector = new BettersSelector(this);
 	
 	/**
-	 * Techniques for the validation set
+	 * Sampling data technique used
 	 */
-	private enum SamplingTechnique{
-		pct67, pct75, pct80, outOfBag, replacement,
-	};
-	SamplingTechnique samplingTechnique;
+	Utils.SamplingTechnique samplingTechnique;
 	
 	/**
 	 * Seed for random numbers
@@ -183,7 +170,7 @@ public class MLCAlgorithm extends MultiSGE {
 	int [] expectedVotesPerLabel;
 	
 	/**
-	 * More frequent labels have more chance to have more votes
+	 * Indicates if more frequent labels have more chance to have more votes
 	 */
 	boolean weightVotesByFrequency;
 
@@ -199,34 +186,41 @@ public class MLCAlgorithm extends MultiSGE {
 	
 	/**
 	 * Indicates how many individuals have been included in the population for the current iteration
-	 * at the communication process.
+	 * at the exchange communication process.
 	 */
 	int [] currItAdd;
 	
 	/**
 	 * Indicates how many individuals have been removed from the population for the current iteration
-	 * at the communication process.
+	 * at the exchange communication process.
 	 */
 	int [] currItRem;
 	
 	/**
-	 * Type of communication between subpopulations
-	 *
+	 * Type of communication used in the algorithm
 	 */
-	private enum CommunicationType{
-		no, exchange, operators,
-	};
-	CommunicationType commType;
+	Utils.CommunicationType commType;
 	
 	/**
-	 * Probability of crossover and mutate individuals in their case in operators communication
+	 * Probability of crossover individuals in operators communication
 	 */
-	double probCrossComm, probMutCom;
+	double probCrossComm;
 	
 	/**
-	 * Indicates if the ensemble is pruned at the end
+	 * Probability of mutate individuals in operators communication
+	 */
+	double probMutComm;
+	
+	/**
+	 * Indicates if the final ensemble is pruned at the end
 	 */
 	boolean prune;
+	
+	/**
+	 * Average expected votes per label
+	 */
+	int avgVotes = 10;
+	
 	
 	/**
 	 * Constructor
@@ -249,17 +243,7 @@ public class MLCAlgorithm extends MultiSGE {
 	 */
 	public MultiLabelInstances getDatasetTrain(int i)
 	{
-		return datasetTrain[i];
-	}
-	
-	/**
-	 * Gets the validation multi-label dataset
-	 * 
-	 * @return Multi-label validation dataset
-	 */
-	public MultiLabelInstances getDatasetValidation(int i)
-	{
-		return datasetValidation[i];
+		return datasetsTrain[i];
 	}
 	
 	/**
@@ -287,9 +271,9 @@ public class MLCAlgorithm extends MultiSGE {
 	 * 
 	 * @return Max number of labels per classifier
 	 */
-	public int getMaxNumberLabelsClassifier()
+	public int getk()
 	{
-		return maxNumLabelsClassifier;
+		return k;
 	}
 	
 	/**
@@ -300,16 +284,6 @@ public class MLCAlgorithm extends MultiSGE {
 	public EnsembleMLC getEnsemble()
 	{
 		return ensemble;
-	}
-	
-	/**
-	 * Returns if a validation set is or not used
-	 * 
-	 * @return True if a validation set is used and false otherwise
-	 */
-	public boolean getIsValidationSet()
-	{
-		return useValidationSet;
 	}
 	
 	/**
@@ -407,8 +381,7 @@ public class MLCAlgorithm extends MultiSGE {
 		super.configure(configuration);
 		
 		System.out.println("Number of subpopulations: " + numSubpop);
-		datasetTrain = new MultiLabelInstances[numSubpop];
-		datasetValidation = new MultiLabelInstances[numSubpop];
+		datasetsTrain = new MultiLabelInstances[numSubpop];
 		currItAdd = new int[numSubpop];
 		currItRem = new int[numSubpop];
 		
@@ -425,12 +398,10 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			fullDatasetTrain = new MultiLabelInstances(datasetTrainFileName, datasetXMLFileName);
 			datasetTest = new MultiLabelInstances(datasetTestFileName, datasetXMLFileName);
-
-			useValidationSet = configuration.getBoolean("validation-set");
 			
-			String validationSetTechniqueString = configuration.getString("sampling-type");
+			String sampleTypeString = configuration.getString("sampling-type");
 
-			switch (validationSetTechniqueString) {
+			switch (sampleTypeString) {
 			case "pct67":
 				samplingTechnique = SamplingTechnique.pct67;					
 				break;
@@ -439,12 +410,6 @@ public class MLCAlgorithm extends MultiSGE {
 				break;
 			case "pct80":
 				samplingTechnique = SamplingTechnique.pct80;					
-				break;
-			case "outOfBag":
-				samplingTechnique = SamplingTechnique.outOfBag;					
-				break;
-			case "replacement":
-				samplingTechnique = SamplingTechnique.replacement;					
 				break;
 
 			default:
@@ -463,49 +428,36 @@ public class MLCAlgorithm extends MultiSGE {
 			case "operators":
 				commType = CommunicationType.operators;
 				probCrossComm = configuration.getDouble("probability-crossover-communication");
-				probMutCom = configuration.getDouble("probability-mutator-communication");
+				probMutComm = configuration.getDouble("probability-mutator-communication");
 				break;
 			
 			default:
 				break;
 			}
 			
-			/* If validation set is used:
-			 * 	Train set is a subset of full training
-			 *  Validation set is full training set (it includes instances not seen in training)
-			 */
-			if(useValidationSet)
-			{
-				for(int i=0; i<numSubpop; i++) {
-					seed = seed + 1;
-					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), samplingTechnique);
-					datasetTrain[i] = m[0];
-					datasetValidation[i] = fullDatasetTrain.clone();
-					
-					//datasetValidation[i] = m[0];
-					//datasetValidation[i].getDataSet().addAll(m[1].getDataSet());
-					
-					//datasetValidation[i] = m[1];
-				}
-			}
-			/* If validation set is not used:
-			 * 	Train and validation set are the same; a subset of full training
-			 */
-			else
-			{
-				for(int i=0; i<numSubpop; i++) {
-					seed = seed + 1;
-					MultiLabelInstances [] m = generateValidationSet(fullDatasetTrain.clone(), samplingTechnique);
-					datasetTrain[i] = m[0];
-					datasetValidation[i] = m[0];
-				}	
+			String evalTypeString = configuration.getString("eval-type");
+
+			switch (evalTypeString) {
+			case "train":
+				evalType = EvalType.train;
+				break;
+			case "full":
+				evalType = EvalType.full;	
+				break;
+				
+			default:
+				break;
 			}
 			
+			for(int i=0; i<numSubpop; i++) {
+				seed = seed + 1;
+				datasetsTrain[i] = Utils.sampleData(fullDatasetTrain.clone(), samplingTechnique, randgen);
+			}
+			
+			// Set base learner
 			//RandomTree rt = new RandomTree();
 			//rt.setKValue((int)Math.round(fullDatasetTrain.getDataSet().numAttributes() * .75));
 			J48 j48 = new J48();
-			//j48.setUnpruned(true);
-			//j48.setConfidenceFactor((float) 0.05);
 			learner = new LabelPowerset2(j48);
 			((LabelPowerset2)learner).setSeed((int)seed);
 			
@@ -515,7 +467,7 @@ public class MLCAlgorithm extends MultiSGE {
 			numClassifiers = configuration.getInt("number-classifiers");
 			predictionThreshold = configuration.getDouble("prediction-threshold");
 
-			maxNumLabelsClassifier = configuration.getInt("number-labels-classifier");
+			k = configuration.getInt("number-labels-classifier");
 			
 			weightVotesByFrequency = configuration.getBoolean("weightVotesByFrequency");
 			
@@ -527,19 +479,19 @@ public class MLCAlgorithm extends MultiSGE {
 			prune = configuration.getBoolean("prune-ensemble");
 			
 			// Set provider settings
-			((EagletIndividualCreator) provider).setK(maxNumLabelsClassifier);
+			((EagletIndividualCreator) provider).setK(k);
 			((EagletIndividualCreator) provider).setNumLabels(numberLabels);
 						
 			// Set evaluator settings
 			((MLCEvaluator) evaluator).setTableFitness(tableFitness);
 			((MLCEvaluator) evaluator).setTableClassifiers(tableClassifiers);
 			((MLCEvaluator) evaluator).setLearner(learner);
-			((MLCEvaluator) evaluator).setUseValidationSet(useValidationSet);
-			((MLCEvaluator) evaluator).setDatasetTrain(datasetTrain);
-			((MLCEvaluator) evaluator).setDatasetValidation(datasetValidation);
+			((MLCEvaluator) evaluator).setDatasetsTrain(datasetsTrain);
+			if(evalType == EvalType.full) {
+				((MLCEvaluator) evaluator).setDatasetValidation(fullDatasetTrain);
+			}
 			((MLCEvaluator) evaluator).setSeed((int)seed);
 			
-
 			// Set genetic operator settings
 			((EagletMutator) mutator.getDecorated()).setNumLabels(numberLabels);
 			((RandomCrossover) recombinator.getDecorated()).setNumLabels(numberLabels);
@@ -556,35 +508,11 @@ public class MLCAlgorithm extends MultiSGE {
 		//Calculate individuals by subpopulation
 		subpopSize = (int)Math.round((populationSize*1.0) / numSubpop);
 		
+		//Initialice space for each subpopulation
 		bset = new ArrayList<List<IIndividual>>(numSubpop);
 		pset = new ArrayList<List<IIndividual>>(numSubpop);
 		cset = new ArrayList<List<IIndividual>>(numSubpop);
 		rset = new ArrayList<List<IIndividual>>(numSubpop);
-		
-		//Calculate phi matrix only if necessary
-		if((provider.getClass().toString().toLowerCase().contains("phi")) || (mutator.getDecorated().getClass().toString().toLowerCase().contains("phi"))){
-			phiMatrix = new double[numSubpop][numberLabels][numberLabels];
-			Statistics s = new Statistics();
-			
-			for(int p=0; p<numSubpop; p++) {
-				try {
-					phiMatrix[p] = s.calculatePhi(getDatasetTrain(p));
-					
-					for(int i=0; i<numberLabels; i++){
-						for(int j=0; j<numberLabels; j++) {
-							if(Double.isNaN(phiMatrix[p][i][j])){
-								phiMatrix[p][i][j] = 0;
-							}
-						}	
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				
-				System.out.println("Phi matrix number " + p);
-				s.printPhiCorrelations();
-			}
-		}	
 		
 		/*
 		 * Initialize subpopulations
@@ -595,22 +523,12 @@ public class MLCAlgorithm extends MultiSGE {
 				((FrequencyBasedIndividualCreator) provider).setAppearances(Utils.calculateAppearances(getDatasetTrain(p)));
 			}
 
-
-			if(weightVotesByFrequency){
-				//Calculate expected voted based on frequency; ensuring a minimum of 5 votes per label
-				weightsPerLabel = Utils.calculateFrequencies(datasetTrain[p]);
-				expectedVotesPerLabel = Utils.calculateExpectedVotes(weightsPerLabel, (int)Math.round(3.33*numberLabels)*maxNumLabelsClassifier, numClassifiers, 5, randgen.choose(100));
+			//Spread votes evenly
+			weightsPerLabel = new double[numberLabels];
+			for(int j=0; j<numberLabels; j++){
+				weightsPerLabel[j] = (double)1 / numberLabels;
 			}
-			else{
-				//Spread votes evenly
-				weightsPerLabel = new double[numberLabels];
-				for(int j=0; j<numberLabels; j++){
-					weightsPerLabel[j] = (double)1 / numberLabels;
-				}
-				expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, (int)Math.round((10.0/maxNumLabelsClassifier)*numberLabels)*maxNumLabelsClassifier, randgen.choose(100));
-				//expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, 10*numberLabels, randgen.choose(100));
-				
-			}
+			expectedVotesPerLabel = Utils.spreadVotesEvenly(numberLabels, (int)Math.round(((avgVotes*1.0)/k)*numberLabels)*k, randgen.choose(100));
 			
 
 			System.out.println(Arrays.toString(expectedVotesPerLabel));
@@ -619,12 +537,11 @@ public class MLCAlgorithm extends MultiSGE {
 			((EagletIndividualCreator) provider).setSubpopId(p);
 			List<IIndividual> prov = provider.provide(subpopSize);
 			bset.add(p, prov);
-
-			// Evaluate individuals
-			//((MLCEvaluator)evaluator).evaluate(bset.get(p));
 		}
 		
+		//Evaluate all individuals
 		((MLCEvaluator)evaluator).evaluateMultip(bset);
+		
 		// Do Control
 		doControl();
 	}
@@ -633,13 +550,14 @@ public class MLCAlgorithm extends MultiSGE {
 	protected void doUpdate() 
 	{	
 		try{
+			//Update each subpop independently
 			for(int p=0; p<numSubpop; p++) {
 				//Join all bset and cset individuals in cset; remove duplicated
 				cset.get(p).addAll(bset.get(p));
-				//System.out.println("cset " + p + ": " + cset.get(p).size());
 				cset.set(p, Utils.removeDuplicated(cset.get(p)));
+				
+				//If one subpopulation remains less individuals than required, include random inds
 				if(cset.get(p).size() < subpopSize) {
-					System.out.println("Adding individuals. Size " + cset.get(p).size());
 					MultipBinArrayIndividual ind;
 					
 					while(cset.get(p).size() < subpopSize){
@@ -648,14 +566,13 @@ public class MLCAlgorithm extends MultiSGE {
 							cset.get(p).add(ind);
 						}
 					}
+					
+					//Evaluate new random individuals
+					((MLCEvaluator)evaluator).evaluateMultip(cset);
 				}
-				((MLCEvaluator)evaluator).evaluateMultip(cset);
-				//System.out.println("cset2 " + p + ": " + cset.get(p).size());
 				
 				//Select individuals from cset, and set as bset
 				bset.set(p, selectEnsembleMembers(cset.get(p), subpopSize, expectedVotesPerLabel, betaUpdatePop));
-				
-				//bset.set(p, bettersSelector.select(bset.get(p), bset.get(p).size()));
 				
 				//Clear rest of sets
 				pset.get(p).clear();
@@ -688,22 +605,18 @@ public class MLCAlgorithm extends MultiSGE {
 			//	The probability is higher in last generations and lower in earlier
 			if(bestEnsemble != null) {
 				for(IIndividual ind : bestEnsemble.getEnsembleInds()) {
-					if(!contains(allInds, ind)) {
+					if(!Utils.contains(allInds, ind)) {
 						if(randgen.coin((generation*1.0)/maxOfGenerations)) {
 							allInds.add(ind);
 						}
 					}
 				}
-				//allInds.addAll(bestEnsemble.getEnsembleInds());
-				//allInds = Utils.removeDuplicated(allInds);
 			}
-			//System.out.println("despues: " + allInds.size());
 				
 			//Create an ensemble considering all individuals
 			EnsembleMLC currentEnsemble = null;
 			try {
 				currentEnsemble = generateAndBuildEnsemble(allInds, fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, false);
-				//currentEnsemble.build(fullDatasetTrain);
 
 				//Evaluate the ensemble
 				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(currentEnsemble, fullDatasetTrain);
@@ -722,7 +635,7 @@ public class MLCAlgorithm extends MultiSGE {
 
 				System.out.println();
 					
-				//Communicate subpopulations (it will modified the bsets)
+				//Communicate subpopulations (it will modify the bsets)
 				bset = communicateSubpops(bset, currentEnsemble.getEnsembleInds(), commType);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -735,17 +648,22 @@ public class MLCAlgorithm extends MultiSGE {
 			System.out.println("--- MAX GEN REACHED ---");
 			
 			if(bestEnsemble == null) {
+				//Join all individuals
 				List<IIndividual> allInds = new ArrayList<IIndividual>();
 				for(int p=0; p<numSubpop; p++) {
 					allInds.addAll(bset.get(p));
 				}
 				
+				//Generate ensemble with all individuals
 				ensemble = generateAndBuildEnsemble(allInds, fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, true);
 				
+				//Evaluate final ensemble
 				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(ensemble, fullDatasetTrain);
 				bestFitness = ensembleEval.evaluate();
 			}
 			else {
+				//Call to the generateAndBuildEnsemble method with the individuals of the best ensemble AND prune = true
+				//It just try to prune the best ensemble
 				ensemble = generateAndBuildEnsemble(bestEnsemble.getEnsembleInds(), fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, true);
 			}
 			
@@ -763,28 +681,11 @@ public class MLCAlgorithm extends MultiSGE {
 		}
 	}
 	
-	private IIndividual selectRandomIndividual(List<List<IIndividual>> list, int popToAvoid) {
-		int totalInds = 0;
-		for(List<IIndividual> subpop : list) {
-			if(((MultipBinArrayIndividual)subpop.get(0)).getSubpop() != popToAvoid) {
-				totalInds += subpop.size();
-			}
-		}
-		
-		int index = randgen.choose(totalInds);
-		for(List<IIndividual> subpop : list) {
-			if(((MultipBinArrayIndividual)subpop.get(0)).getSubpop() != popToAvoid) {
-				if(index >= subpop.size()) {
-					index -= subpop.size();
-				}
-				else {
-					return subpop.get(index);
-				}
-			}
-		}
-		
-		return null;
-	}
+	
+	/***
+	 * OTHER METHODS
+	 */	
+	
 	
 	/**
 	 * Generate an ensemble (select the members) and build it given the individuals
@@ -850,7 +751,7 @@ public class MLCAlgorithm extends MultiSGE {
 						}
 					}
 					
-					if(!containsComb(bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()), (MultipBinArrayIndividual)ensemble.get(i))) {
+					if(!Utils.containsComb(bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()), (MultipBinArrayIndividual)ensemble.get(i))) {
 						if(randgen.coin((generation*1.0)/maxOfGenerations)) {
 							bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()).add(ensemble.get(i));
 							//System.out.println("Add it!");
@@ -861,7 +762,7 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			//Check if we removed all individuals for any of the labels
 			for(int p=0; p<numSubpop; p++) {
-				int[] votes = calculateVotesPerLabel(bset.get(p), numberLabels);
+				int[] votes = Utils.calculateVotesPerLabel(bset.get(p), numberLabels);
 				for(int i=0; i<votes.length; i++) {
 					if(votes[i] <= 0) {
 						bset.get(p).add(((MultipBinArraySpecies)species).createIndividual(((EagletIndividualCreator) provider).createRandomGenotype(i), p));
@@ -880,7 +781,7 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 				//If less individuals than needed, add and evaluate random individuals
 				else if(bset.get(p).size() < subpopSize) {
-					fillPopRandom(bset.get(p), subpopSize);
+					bset.set(p, Utils.fillPopRandom(bset.get(p), subpopSize, species, provider));
 					((MLCEvaluator)evaluator).evaluate(bset.get(p));
 				}
 			}
@@ -899,13 +800,13 @@ public class MLCAlgorithm extends MultiSGE {
 				for(IIndividual ind : bset.get(p)) {
 					//Do crossover with random ind from other subpop
 					if(randgen.coin(probCrossComm)) {
-						randInd = selectRandomIndividual(bset, p);
+						randInd = Utils.selectRandomIndividual(bset, p, randgen);
 						crossedInds = ((RandomCrossover) recombinator.getDecorated()).recombineInds((MultipBinArrayIndividual) ind, (MultipBinArrayIndividual) randInd);
 						newInds.add(crossedInds[0]);
 						newInds.add(crossedInds[1]);
 					}
 					
-					if(randgen.coin(probMutCom)) {
+					if(randgen.coin(probMutComm)) {
 						newInds.add(((RandomMutator) mutator.getDecorated()).mutateIndSubpop((MultipBinArrayIndividual)ind));
 					}
 				}
@@ -931,52 +832,6 @@ public class MLCAlgorithm extends MultiSGE {
 		}
 		
 		return bset;
-	}
-	
-	/**
-	 * Fill population (or subpopulation) with random individuals
-	 * 
-	 * @param pop List of individuals defininf a (sub)population
-	 * @param toReach Number of individuals to reach in the population
-	 */
-	protected void fillPopRandom(List<IIndividual> pop, int toReach){
-		MultipBinArrayIndividual ind;
-		int p = ((MultipBinArrayIndividual)pop.get(0)).getSubpop();
-		
-		while(pop.size() < toReach) {
-			ind = ((MultipBinArraySpecies)species).createIndividual(((EagletIndividualCreator) provider).createRandomGenotype(), p);
-			//pop.contains(ind);
-			if(!containsComb(pop, ind)) {
-				pop.add(ind);
-			}
-		}
-	}
-	
-	/**
-	 * Check if a list of individuals contains the combination of labels of a given individual
-	 * 
-	 * @param list List of individuals
-	 * @param ind Single individual
-	 * @return True if it contains and false otherwise
-	 */
-	public boolean containsComb(List<IIndividual> list, IIndividual ind) {
-		for(IIndividual oInd : list) {
-			if(Arrays.toString(((MultipBinArrayIndividual)ind).getGenotype()).equals(Arrays.toString(((MultipBinArrayIndividual)oInd).getGenotype()))) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	public boolean contains(List<IIndividual> list, IIndividual ind) {
-		for(IIndividual oInd : list) {
-			if( ((MultipBinArrayIndividual)oInd).getSubpop() == ((MultipBinArrayIndividual)ind).getSubpop() ) {
-				if(Arrays.toString(((MultipBinArrayIndividual)ind).getGenotype()).equals(Arrays.toString(((MultipBinArrayIndividual)oInd).getGenotype()))) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 	
 	/**
@@ -1029,203 +884,7 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		return 0;
 	}
-	
-	/**
-	 * Partition data into train and validation sets
-	 * 
-	 * @param mlData Full data
-	 * @param samplingTechnique Technique for selecting the data
-	 * @return
-	 */
-	private MultiLabelInstances [] generateValidationSet(MultiLabelInstances mlData, SamplingTechnique samplingTechnique){
-		/**
-		 * 	Array storing train and validation datasets
-		 * 		datasets[0] -> train
-		 * 		datasets[1] -> validation
-		 */
-		MultiLabelInstances [] datasets = new MultiLabelInstances[2];
 		
-		MultiLabelInstances [] folds;
-		IterativeStratification strat;
-		
-		Instances data, newData;
-
-		switch (samplingTechnique) {
-		case replacement:
-			data = mlData.getDataSet();
-			newData = new Instances(data);
-			newData.removeAll(newData);
-			System.out.println("newData.size(): " + newData.numInstances());
-			
-			for(int i=0; i<data.numInstances(); i++) {
-				newData.add(data.get(randgen.choose(data.numInstances())));
-			}
-			
-			try {
-				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
-			} catch (InvalidDataFormatException e1) {
-				e1.printStackTrace();
-			}
-			datasets[1] = null;
-			
-			break;
-		case pct67:
-			data = mlData.getDataSet();
-			newData = new Instances(data);
-			newData.removeAll(newData);
-			int [] indexes = new int[data.numInstances()];
-			for(int i=0; i<data.numInstances(); i++) {
-				indexes[i] = i;
-			}
-			int r, aux;
-			for(int i=0; i<data.numInstances(); i++) {
-				r = randgen.choose(data.numInstances());
-				aux = indexes[i];
-				indexes[i] = indexes[r];
-				indexes[r] = aux;
-			}
-			int limit = (int)Math.round(data.numInstances()*.67);
-			
-			for(int i=0; i<limit; i++) {
-				newData.add(data.get(indexes[i]));
-			}
-			
-			try {
-				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
-			} catch (InvalidDataFormatException e1) {
-				e1.printStackTrace();
-			}
-			
-			datasets[1] = null;
-			/*
-			strat = new IterativeStratification(seed);
-			folds = strat.stratify(mlData, 3);
-			
-			datasets[0] = folds[0].clone();
-			datasets[0].getDataSet().addAll(folds[1].getDataSet());
-			datasets[1] = folds[2].clone();	
-			*/		
-			break;
-			
-		case pct75:
-			data = mlData.getDataSet();
-			newData = new Instances(data);
-			newData.removeAll(newData);
-			indexes = new int[data.numInstances()];
-			for(int i=0; i<data.numInstances(); i++) {
-				indexes[i] = i;
-			}
-			for(int i=0; i<data.numInstances(); i++) {
-				r = randgen.choose(data.numInstances());
-				aux = indexes[i];
-				indexes[i] = indexes[r];
-				indexes[r] = aux;
-			}
-			limit = (int)Math.round(data.numInstances()*.75);
-			
-			for(int i=0; i<limit; i++) {
-				newData.add(data.get(indexes[i]));
-			}
-			
-			try {
-				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
-			} catch (InvalidDataFormatException e1) {
-				e1.printStackTrace();
-			}
-			
-			datasets[1] = null;
-			
-			/*
-			strat = new IterativeStratification(seed);
-			folds = strat.stratify(mlData, 4);
-			
-			datasets[0] = folds[0].clone();
-			datasets[0].getDataSet().addAll(folds[1].getDataSet());
-			datasets[0].getDataSet().addAll(folds[2].getDataSet());
-			datasets[1] = folds[3].clone();
-			*/
-			break;
-		
-		case pct80:
-			data = mlData.getDataSet();
-			newData = new Instances(data);
-			newData.removeAll(newData);
-			indexes = new int[data.numInstances()];
-			for(int i=0; i<data.numInstances(); i++) {
-				indexes[i] = i;
-			}
-			for(int i=0; i<data.numInstances(); i++) {
-				r = randgen.choose(data.numInstances());
-				aux = indexes[i];
-				indexes[i] = indexes[r];
-				indexes[r] = aux;
-			}
-			limit = (int)Math.round(data.numInstances()*.80);
-			
-			for(int i=0; i<limit; i++) {
-				newData.add(data.get(indexes[i]));
-			}
-			
-			try {
-				datasets[0] = new MultiLabelInstances(newData, mlData.getLabelsMetaData());
-			} catch (InvalidDataFormatException e1) {
-				e1.printStackTrace();
-			}
-			
-			datasets[1] = null;
-			
-			/*strat = new IterativeStratification(seed);
-			folds = strat.stratify(mlData, 5);
-			
-			datasets[0] = folds[0].clone();
-			datasets[0].getDataSet().addAll(folds[1].getDataSet());
-			datasets[0].getDataSet().addAll(folds[2].getDataSet());
-			datasets[0].getDataSet().addAll(folds[3].getDataSet());
-			datasets[1] = folds[4].clone();
-			*/
-			break;
-		
-		case outOfBag:
-			ArrayList<Integer> inBag = new ArrayList<Integer>();
-			ArrayList<Integer> outOfBag = new ArrayList<Integer>();
-			
-			for(int i=0; i<mlData.getNumInstances(); i++){
-				inBag.add(randgen.choose(0, mlData.getNumInstances()));
-			}
-			
-			//Out of bag includes indices that were not included in the bagged data
-			for(int i=0; i<mlData.getNumInstances(); i++){
-				if(!inBag.contains(i)){
-					outOfBag.add(i);
-				}
-			}
-			
-			try {
-				datasets[0] = new MultiLabelInstances(mlData.getDataSet(), mlData.getLabelsMetaData());
-				data = mlData.getDataSet();
-				datasets[0].getDataSet().clear();
-				datasets[1] = datasets[0].clone();
-				
-				for(int element : inBag){
-					datasets[0].getDataSet(). add(data.get(element));
-				}
-				
-				for(int element : outOfBag){
-					datasets[1].getDataSet(). add(data.get(element));
-				}				
-			} catch (InvalidDataFormatException e) {
-				e.printStackTrace();
-			}
-
-			break;
-			
-		default:
-			break;
-		}
-		
-		return datasets;
-	}
-	
 	/**
 	 * Generate an ensemble given the list of individuals
 	 * 
@@ -1235,6 +894,15 @@ public class MLCAlgorithm extends MultiSGE {
 	private EnsembleMLC generateEnsemble(List<IIndividual> members){
 		return generateEnsemble(members, learner, members.size(), tableClassifiers);
 	}
+	
+	/**
+	 * Generate an ensemble given the list of individuals to use and some other parameters
+	 * @param members List of members for the ensemble
+	 * @param learner Multi-label base classifier to use in each member
+	 * @param numClassifiers Number of classifiers in the ensemble
+	 * @param tableClassifiers Table including each classifier previously built
+	 * @return Ensemble generated
+	 */
 	private EnsembleMLC generateEnsemble(List<IIndividual> members, MultiLabelLearner learner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers){
 		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers);
 		ensemble.setThreshold(predictionThreshold);
@@ -1252,10 +920,7 @@ public class MLCAlgorithm extends MultiSGE {
 	 * @return List of individuals selected to form the ensemble
 	 */
 	private List<IIndividual> selectEnsembleMembers(List<IIndividual> individuals, int n, int [] expectedVotes, double beta){
-		//Copy of the expectedVotes array
-		
-		//System.out.println("\t" + individuals.size() + " ; " + n);
-		
+		//Copy of the expectedVotes array		
 		int [] expectedVotesCopy = new int[numberLabels];
 		System.arraycopy(expectedVotes, 0, expectedVotesCopy, 0, numberLabels);
 		
@@ -1288,12 +953,12 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			//Update fitness for all individuals
 			for(int i=0; i<indsCopy.size(); i++){
-				updatedFitnesses[i] = beta * distanceToEnsemble(indsCopy.get(i), members, currentEnsembleSize, weights, 0.75) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
+				updatedFitnesses[i] = beta * Utils.distanceToEnsemble(indsCopy.get(i), members, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
 			}
 			
 			//System.out.println("\t\t" + Arrays.toString(updatedFitnesses));
 			//Get best individual with updated fitness
-			int maxIndex = Utils.getMaxIndex(updatedFitnesses);
+			int maxIndex = Utils.getMaxIndex(updatedFitnesses, randgen.choose(100));
 			
 			//Add individual to ensemble members
 			members.add(indsCopy.get(maxIndex));
@@ -1319,7 +984,7 @@ public class MLCAlgorithm extends MultiSGE {
 		ArrayList<Integer> noVotesLabels = new ArrayList<Integer>();
 		do{
 			noVotesLabels.clear();
-			int [] votesPerLabel = Utils.calculateVotesPerLabel(individualsToEnsembleMatrix(members));
+			int [] votesPerLabel = Utils.calculateVotesPerLabel(Utils.individualsToEnsembleMatrix(members));
 
 			for(int i=0; i<votesPerLabel.length; i++){
 				if(votesPerLabel[i] == 0){
@@ -1334,15 +999,15 @@ public class MLCAlgorithm extends MultiSGE {
 				int currentLabel = noVotesLabels.get(r);
 
 				//Remove the worst individual of the most voted label (if do not remove other label appearing only once
-				IIndividual worstIndByLabel = getWorstIndividualByLabel(members, Utils.getMaxIndex(votesPerLabel, randgen.choose(100)));
+				IIndividual worstIndByLabel = Utils.getWorstIndividualByLabel(members, Utils.getMaxIndex(votesPerLabel, randgen.choose(100)));
 				members.remove(worstIndByLabel);
 				
 				//Add the individual including label noVotesLabels[r] that better matches with the ensemble
-				List<IIndividual> candidates = getIndividualsWithLabel(indsCopy, currentLabel);
+				List<IIndividual> candidates = Utils.getIndividualsWithLabel(indsCopy, currentLabel);
 				double [] candidatesFitness = new double[candidates.size()];
 				
 				for(int i=0; i<candidates.size(); i++){
-					candidatesFitness[i] = beta * distanceToEnsemble(candidates.get(i), members, members.size(), weights, 0.75) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
+					candidatesFitness[i] = beta * Utils.distanceToEnsemble(candidates.get(i), members, members.size(), weights) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
 				}
 				
 				double maxFitness = candidatesFitness[0];
@@ -1366,131 +1031,16 @@ public class MLCAlgorithm extends MultiSGE {
 	}
 	
 	/**
-	 * Get the individual with less predictive performance from those containing a given label
+	 * Given a list of members of an ensemble, it tries to prune the ensemble in reverse order of individuals.
+	 * It considers the predictive performance of the ensemble to prune it.
+	 * It it decreases the performance by removing more than 10% of members, it stop trying to prune.
 	 * 
-	 * @param individuals List of individuals
-	 * @param label Given label
-	 * @return Worst individual with the label
-	 */
-	private IIndividual getWorstIndividualByLabel(List<IIndividual> individuals, int label){
-		List<IIndividual> candidates = new ArrayList<IIndividual>();
-		
-		for(int i=0; i<individuals.size(); i++){
-			if(((MultipBinArrayIndividual)individuals.get(i)).getGenotype()[label] == 1){
-				candidates.add(individuals.get(i));
-			}
-		}
-		
-		double minFitness = Double.MAX_VALUE;
-		IIndividual worst = null;
-		
-		double currentFitness;
-		for(int i=0; i<candidates.size(); i++){
-			currentFitness = ((SimpleValueFitness)individuals.get(i).getFitness()).getValue();
-			if(currentFitness < minFitness){
-				if(! hasCriticalLabel(candidates.get(i), individuals)){
-					minFitness = currentFitness;
-					worst = candidates.get(i);
-				}
-			}
-		}
-		
-		return worst;
-	}
-	
-	/**
-	 * Obtain all individuals containing a given label
-	 * 
-	 * @param list List of individuals
-	 * @param label Label
+	 * @param members Members of the ensemble
+	 * @param mlData Data to validate the prediction accuracy of the ensemble
+	 * @param learner Multi-label classifier to use in each member
+	 * @param tableClassifiers Table including each classifier built so far
 	 * @return
 	 */
-	private List<IIndividual> getIndividualsWithLabel(List<IIndividual> list, int label){
-		List<IIndividual> candidates = new ArrayList<IIndividual>();
-		for(int i=0; i<list.size(); i++){
-			MultipBinArrayIndividual ind = (MultipBinArrayIndividual)list.get(i);
-			byte [] genotype = ind.getGenotype();
-			if(genotype[label] == 1){
-				candidates.add(list.get(i));
-			}
-		}
-
-		return candidates;
-	}
-	
-	/**
-	 * Indicates if an individual has a critical label.
-	 * It is a critical label if it only appears once in the population
-	 * 
-	 * @param ind Individual to check
-	 * @param list List of individuals
-	 * @return True if any of the labels in ind is critical
-	 */
-	private boolean hasCriticalLabel(IIndividual ind, List<IIndividual> list){
-		int [] votesPerLabel = Utils.calculateVotesPerLabel(individualsToEnsembleMatrix(list));
-		
-		byte [] genotype = ((MultipBinArrayIndividual)ind).getGenotype();
-
-		for(int i=0; i<votesPerLabel.length; i++){
-			if(genotype[i] == 1){
-				if(votesPerLabel[i] <= 1){
-					return true;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
-	/**
-	 * Calculate the distance from one individual to an ensemble
-	 * 
-	 * @param ind Individual
-	 * @param ensemble Ensemble
-	 * @param ensembleSize Size of the ensemble
-	 * @param weights Weights for each label to calculate la distance
-	 * @return Distance from individual to ensemble
-	 */
-	private double distanceToEnsemble(byte [] ind, byte [][] ensemble, int ensembleSize, double [] weights){
-		double distance = 0;
-		
-		for(int i=0; i<ensembleSize; i++){
-			distance += Utils.hammingDistance(ind, ensemble[i], weights);
-		}
-		
-		distance /= ensembleSize;
-		
-		return distance;
-	}
-	
-	private double distanceToEnsemble(IIndividual ind, List<IIndividual> ensemble, int ensembleSize, double [] weights, double ratioTrain){
-		double distance = 0;
-		
-		for(int i=0; i<ensembleSize; i++){
-			distance += Utils.distance((MultipBinArrayIndividual)ind, (MultipBinArrayIndividual)ensemble.get(i), weights, ratioTrain);
-		}
-		
-		distance /= ensembleSize;
-		
-		return distance;
-	}
-	
-	/**
-	 * Transform a list of individuals into an ensemble matrix
-	 * 
-	 * @param individuals List of individuals
-	 * @return Byte matrix with the ensemble matrix
-	 */
-	private byte [][] individualsToEnsembleMatrix(List<IIndividual> individuals){
-		byte [][] EnsembleMatrix = new byte[individuals.size()][numberLabels];
-		
-		for(int i=0; i<individuals.size(); i++){
-			System.arraycopy(((MultipBinArrayIndividual)individuals.get(i)).getGenotype(), 0, EnsembleMatrix[i], 0, numberLabels);
-		}
-		
-		return EnsembleMatrix;
-	}
-	
 	public List<IIndividual> pruneEnsemble(List<IIndividual> members, MultiLabelInstances mlData,
 			MultiLabelLearner learner, Hashtable<String, MultiLabelLearner> tableClassifiers) {
 		EnsembleMLC ensemble = null;
@@ -1539,21 +1089,6 @@ public class MLCAlgorithm extends MultiSGE {
 		return bestMembers;
 	}
 	
-	public int[] calculateVotesPerLabel(List<IIndividual> inds, int numLabels)
-	{	
-		byte [][] EnsembleMatrix = individualsToEnsembleMatrix(inds);
-		
-		int [] votesPerLabel = new int[numLabels];
-		
-		for(int i=0; i<EnsembleMatrix.length; i++)
-		{
-			for(int j=0; j<EnsembleMatrix[0].length; j++)
-			{
-				votesPerLabel[j] += EnsembleMatrix[i][j];
-			}
-		}
-		
-		return votesPerLabel;
-	}
+	
 	
 }

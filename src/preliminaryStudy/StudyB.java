@@ -118,7 +118,7 @@ public class StudyB {
 					EnsembleMLC_Multip ensemble = null;
 					
 					for(boolean pr : prune) {
-						ensemble = eGen.generateAndBuildEnsemble(pop, fullTrainData, numClassifiers[n], beta, learner, tableClassifiers, pr);
+						ensemble = eGen.generateAndBuildEnsemble(pop, fullTrainData, numClassifiers[n], beta, learner, tableClassifiers, pr, seed);
 						List<Measure> measures = new ArrayList<Measure>();  	       
 			  	       	measures = StudyUtils.prepareMeasures(ensemble, testData);
 				     	Evaluation results;     	

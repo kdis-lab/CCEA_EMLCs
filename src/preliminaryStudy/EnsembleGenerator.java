@@ -34,7 +34,7 @@ public class EnsembleGenerator {
 	 * @return
 	 */
 	public EnsembleMLC_Multip generateAndBuildEnsemble(List<List<MultipBinArrayIndividual>> individuals, MultiLabelInstances mlData, int n, double beta,
-			MultiLabelLearner learner, Hashtable<String, MultiLabelLearner> tableClassifiers, boolean prune) {
+			MultiLabelLearner learner, Hashtable<String, MultiLabelLearner> tableClassifiers, boolean prune, int seed) {
 		List<MultipBinArrayIndividual> ensembleMembers = null;
 		EnsembleMLC_Multip ensemble = null;
 		List<MultipBinArrayIndividual> allInds = new ArrayList<MultipBinArrayIndividual>();
@@ -47,7 +47,7 @@ public class EnsembleGenerator {
 		}
 		
 		try {
-			ensembleMembers = selectEnsembleMembers(allInds, n, beta, 3, nSubpops);
+			ensembleMembers = selectEnsembleMembers(allInds, n, beta, 3, nSubpops, seed);
 			if(prune) {
 				ensembleMembers = pruneEnsemble(ensembleMembers, mlData, learner, tableClassifiers);
 			}
@@ -119,7 +119,7 @@ public class EnsembleGenerator {
 	 * @param beta Value to give more importance to performance or to diversity
 	 * @return List of individuals selected to form the ensemble
 	 */
-	public List<MultipBinArrayIndividual> selectEnsembleMembers(List<MultipBinArrayIndividual> individuals, int n, double beta, int k, int nSubpops){
+	public List<MultipBinArrayIndividual> selectEnsembleMembers(List<MultipBinArrayIndividual> individuals, int n, double beta, int k, int nSubpops, int seed){
 		BettersSelector2 bselector = new BettersSelector2();
 		int numberLabels = individuals.get(0).getGenotype().length;
 		
@@ -166,7 +166,7 @@ public class EnsembleGenerator {
 			}
 			
 			//Get best individual with updated fitness
-			int maxIndex = Utils.getMaxIndex(updatedFitnesses);
+			int maxIndex = Utils.getMaxIndex(updatedFitnesses, seed);
 			
 			//Add individual to ensemble members
 			members.add((MultipBinArrayIndividual)indsCopy.get(maxIndex));
