@@ -79,13 +79,13 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 		executionTime += System.currentTimeMillis() - time;
 	}
 	
-	public void evaluateMultip(List<List<IIndividual>> inds)
+	public void evaluateMultip(List<List<IIndividual>> bset)
 	{
 		long time = System.currentTimeMillis();
 		
 		ExecutorService threadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		
-		for(List<IIndividual> subpop : inds) {
+		for(List<IIndividual> subpop : bset) {
 			for (IIndividual ind : subpop)
 			{
 				if (ind.getFitness() == null)

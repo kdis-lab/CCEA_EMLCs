@@ -301,6 +301,10 @@ public class Utils {
 			}
 		}
 		
+		/*List<IIndividual> newList = inds.stream() 
+                .distinct() 
+                .collect(Collectors.toList());*/ 
+		
 		return newList;
 	}
 	

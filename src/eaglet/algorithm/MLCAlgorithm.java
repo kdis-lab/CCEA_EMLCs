@@ -32,7 +32,6 @@ import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
 import weka.classifiers.trees.J48;
-
 /**
  * Class implementing the evolutionary algorithm for the optimization of MLCEnsemble
  * It is based on a Multiple populations algorithm (MultiSGE)
@@ -946,11 +945,10 @@ public class MLCAlgorithm extends MultiSGE {
 		members.add(remainingInds.get(0));
 		System.arraycopy(((MultipBinArrayIndividual)remainingInds.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
 		remainingInds.remove(0);
+		int currentEnsembleSize = 1;
 		
 		//For each remaining individual, compute its new fitness as a combination of its fitness and the distance to the ensemble
 		double [] updatedFitnesses;
-		
-		//Add individuals until members has the desired size
 		do{
 			//Calculate weights with current expected votes array
 			weights = Utils.calculateFrequencies(expectedVotesCopy);
@@ -958,15 +956,15 @@ public class MLCAlgorithm extends MultiSGE {
 			
 			//Update fitness for all individuals
 			for(int i=0; i<remainingInds.size(); i++){
-				updatedFitnesses[i] = beta * Utils.distanceToEnsemble(remainingInds.get(i), members, members.size(), weights) + (1-beta)*((SimpleValueFitness)remainingInds.get(i).getFitness()).getValue();
+				updatedFitnesses[i] = beta * Utils.distanceToEnsemble(remainingInds.get(i), members, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)remainingInds.get(i).getFitness()).getValue();
 			}
 			
+			//System.out.println("\t\t" + Arrays.toString(updatedFitnesses));
 			//Get best individual with updated fitness
 			int maxIndex = Utils.getMaxIndex(updatedFitnesses, randgen.choose(100));
 			
 			//Add individual to ensemble members
 			members.add(remainingInds.get(maxIndex));
-			
 			//Update expectedVotesCopy to then recalculate weights (keep a minumum of 1)
 			IIndividual currInd = remainingInds.get(maxIndex);
 			byte [] currGen = ((MultipBinArrayIndividual)currInd).getGenotype();
@@ -978,11 +976,12 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 			}
 			
-			System.arraycopy(((MultipBinArrayIndividual)remainingInds.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[members.size()], 0, numberLabels);
-			
+			System.arraycopy(((MultipBinArrayIndividual)remainingInds.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[currentEnsembleSize], 0, numberLabels);
 			//Remove individual from list
-			remainingInds.remove(currInd);
-		}while(members.size() < n);
+			remainingInds.remove(maxIndex);
+						
+			currentEnsembleSize++;
+		}while(currentEnsembleSize < n);
 		
 		//Ensure all labels are taken into account in the ensemble
 		ArrayList<Integer> noVotesLabels = new ArrayList<Integer>();
