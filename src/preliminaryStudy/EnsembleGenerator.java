@@ -162,7 +162,7 @@ public class EnsembleGenerator {
 			
 			//Update fitness for all individuals
 			for(int i=0; i<indsCopy.size(); i++){
-				updatedFitnesses[i] = beta * distanceToEnsemble((MultipBinArrayIndividual)indsCopy.get(i), members, currentEnsembleSize, weights, 0.75) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
+				updatedFitnesses[i] = beta * distanceToEnsemble((MultipBinArrayIndividual)indsCopy.get(i), members, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
 			}
 			
 			//Get best individual with updated fitness
@@ -231,7 +231,7 @@ public class EnsembleGenerator {
 				double [] candidatesFitness = new double[candidates.size()];
 				
 				for(int i=0; i<candidates.size(); i++){
-					candidatesFitness[i] = beta * distanceToEnsemble((MultipBinArrayIndividual)candidates.get(i), members, members.size(), weights, 0.75) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
+					candidatesFitness[i] = beta * distanceToEnsemble((MultipBinArrayIndividual)candidates.get(i), members, members.size(), weights) + (1-beta)*((SimpleValueFitness)candidates.get(i).getFitness()).getValue();
 				}
 				
 				double maxFitness = candidatesFitness[0];
@@ -299,11 +299,11 @@ public class EnsembleGenerator {
 	 * @param weights Weights for each label to calculate la distance
 	 * @return Distance from individual to ensemble
 	 */
-	public double distanceToEnsemble(MultipBinArrayIndividual ind, List<MultipBinArrayIndividual> ensemble, int ensembleSize, double [] weights, double ratioTrain){
+	public double distanceToEnsemble(MultipBinArrayIndividual ind, List<MultipBinArrayIndividual> ensemble, int ensembleSize, double [] weights){
 		double distance = 0;
 		
 		for(int i=0; i<ensembleSize; i++){
-			distance += Utils.distance(ind, ensemble.get(i), weights, ratioTrain);
+			distance += Utils.distance(ind, ensemble.get(i), weights);
 		}
 		
 		distance /= ensembleSize;

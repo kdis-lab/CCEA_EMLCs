@@ -1,6 +1,5 @@
 package eaglet.algorithm;
 
-import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -14,10 +13,6 @@ import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.MultiLabelMetaLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;
-import mulan.evaluation.Evaluation;
-import mulan.evaluation.Evaluator;
-import mulan.evaluation.measure.ExampleBasedFMeasure;
-import mulan.evaluation.measure.Measure;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 
@@ -75,20 +70,14 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 */
 	int seed;
 	
-	/**
-	 * Validation dataset to calculate weights
-	 */
-	MultiLabelInstances validationSet;
 	
 	/**
 	 * Constructor 
 	 * 
-	 * @param EnsembleMatrix Matrix identifying the base classifiers of the ensemble
+	 * @param EnsembleInds IIndividuals identifying the base classifiers of the ensemble
 	 * @param baseLearner Multi-label learner to use in the ensemble
 	 * @param numClassifiers Number of classifiers
-	 * @param threshold Threshold for voting
 	 * @param tableClassifiers Table storing the previously built classifiers
-	 * @param tablePerformanceByLabel Table storing the performances per label
 	 */
 	public EnsembleMLC(List<IIndividual> EnsembleInds, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers)
 	{
@@ -99,6 +88,11 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 		this.tableClassifiers = tableClassifiers;
 	}
 	
+	/**
+	 * Copy contstructor
+	 * 
+	 * @param e Ensemble to copy
+	 */
 	public EnsembleMLC(EnsembleMLC e)
 	{
 		super(e.baseLearner);
@@ -149,7 +143,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	/**
 	 * Sets the number of classifiers of the ensemble
 	 * 
-	 * @param n
+	 * @param n Number of classifiers
 	 */
 	public void setNumClassifiers(int n) {
 		this.numClassifiers = n;
@@ -163,15 +157,6 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	public List<IIndividual> getEnsembleInds()
 	{
 		return EnsembleInds;
-	}
-	
-	public List<MultipBinArrayIndividual> getEnsembleIndsMultip()
-	{
-		List<MultipBinArrayIndividual> members = new ArrayList<MultipBinArrayIndividual>();
-		for(IIndividual ind : EnsembleInds) {
-			members.add((MultipBinArrayIndividual)ind);
-		}
-		return members;
 	}
 	
 	/**
@@ -220,16 +205,7 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	public int[] getVotesPerLabel() {
 		return votesPerLabel;
 	}
-	
-	/**
-	 * Sets the validation set to calculate weights
-	 * 
-	 * @param validationSet Multi-label validation dataset
-	 */
-	public void setValidationSet(MultiLabelInstances validationSet){
-		this.validationSet = validationSet;
-	}
-	
+
 	
 	@Override
 	public String toString()

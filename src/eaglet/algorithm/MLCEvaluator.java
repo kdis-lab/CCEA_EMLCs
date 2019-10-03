@@ -15,7 +15,6 @@ import mulan.evaluation.measure.ExampleBasedFMeasure;
 import mulan.evaluation.measure.Measure;
 import net.sf.jclec.IFitness;
 import net.sf.jclec.IIndividual;
-import net.sf.jclec.base.AbstractParallelEvaluator;
 import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.fitness.ValueFitnessComparator;
@@ -35,14 +34,14 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 
 	
 	/**
-	 *  Dataset to build the base classifiers 
+	 *  Datasets to build the base classifiers 
 	 */
 	private MultiLabelInstances[] datasetTrain;
 	
 	/**
-	 *  Dataset to evaluate the individuals 
+	 *  Dataset to evaluate the individuals (if it is different from train)
 	 */
-	private MultiLabelInstances[] datasetValidation;
+	private MultiLabelInstances datasetValidation = null;
 	
 	/**
 	 *  Indicates if fitness is to maximize 
@@ -70,11 +69,6 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	private MultiLabelLearner learner;
 	
 	/**
-	 *  Indicates if a validation set is used to evaluate the individuals 
-	 */
-	private boolean useValidationSet;
-	
-	/**
 	 * Seed to resolve ties in prediction
 	 */
 	private int seed;
@@ -86,6 +80,7 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	public MLCEvaluator()
 	{
 		super();
+		datasetValidation = null;
 	}
 	
 	
@@ -94,20 +89,9 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	 * 
 	 * @param datasetTrain Multi-label train dataset
 	 */
-	public void setDatasetTrain(MultiLabelInstances[] datasetTrain)
+	public void setDatasetsTrain(MultiLabelInstances[] datasetTrain)
 	{
 		this.datasetTrain = datasetTrain;
-	}
-	
-	
-	/**
-	 * Gets if a validation dataset is used to evaluate the individuals
-	 * 
-	 * @return true if a validation set is used and false otherwise
-	 */
-	public boolean getUseValidationSet()
-	{
-		return useValidationSet;
 	}
 	
 	/**
@@ -115,7 +99,7 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	 * 
 	 * @param datasetValidation Multi-label validation dataset
 	 */
-	public void setDatasetValidation(MultiLabelInstances[] datasetValidation)
+	public void setDatasetValidation(MultiLabelInstances datasetValidation)
 	{
 		this.datasetValidation = datasetValidation;
 	}
@@ -159,16 +143,6 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 		this.seed = seed;
 	}
 
-	/**
-	 * Sets if a validation set is used to evaluate the individuals
-	 * 
-	 * @param isValidationSet True if a validation set is used and false otherwise
-	 */
-	public void setUseValidationSet(boolean isValidationSet)
-	{
-		this.useValidationSet = isValidationSet;
-	}
-
 	@Override
 	public Comparator<IFitness> getComparator() {
 		return COMPARATOR;
@@ -208,10 +182,10 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 				
 
 				MultiLabelInstances newDatasetValidation = null;
-				if(useValidationSet)
+				if(datasetValidation != null)
 				{
 					//Filter validation dataset
-					DatasetTransformation dtV = new DatasetTransformation(datasetValidation[p], genotype);
+					DatasetTransformation dtV = new DatasetTransformation(datasetValidation, genotype);
 					dtV.transformDataset();
 					newDatasetValidation = dtV.getModifiedDataset();
 				}
@@ -228,10 +202,6 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 		       	
 		       	((LabelPowerset2)mll).setSeed(seed);
 		       	results = eval.evaluate(mll, newDatasetValidation, measures);
-		       	//System.out.println("results: " + results);
-		       	//((LabelPowerset2)mll).setSeed(1);
-		       	//results = eval.evaluate(mll, newDatasetValidation, measures);
-		       	//System.out.println("results2: " + results);
 		       	
 	     	  	fitness = results.getMeasures().get(0).getValue();
 	     	  	
