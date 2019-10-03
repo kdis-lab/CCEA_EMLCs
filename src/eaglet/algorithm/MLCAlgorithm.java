@@ -17,10 +17,7 @@ import eaglet.utils.Utils;
 import eaglet.utils.Utils.CommunicationType;
 import eaglet.utils.Utils.EvalType;
 import eaglet.utils.Utils.SamplingTechnique;
-import mulan.data.InvalidDataFormatException;
-import mulan.data.IterativeStratification;
 import mulan.data.MultiLabelInstances;
-import mulan.data.Statistics;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.Evaluator;
 import mulan.evaluation.measure.ExampleBasedFMeasure;
@@ -35,8 +32,6 @@ import mulan.classifier.transformation.LabelPowerset2;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.util.random.IRandGen;
 import weka.classifiers.trees.J48;
-import weka.classifiers.trees.RandomTree;
-import weka.core.Instances;
 
 /**
  * Class implementing the evolutionary algorithm for the optimization of MLCEnsemble
@@ -695,7 +690,7 @@ public class MLCAlgorithm extends MultiSGE {
 	 * @param n Number of individuals in the ensemble
 	 * @param expectedVotes Expected number of votes for each label in the ensemble
 	 * @param beta Value to give more importance to performance or diversity
-	 * @return
+	 * @return Ensemble generated
 	 */
 	private EnsembleMLC generateAndBuildEnsemble(List<IIndividual> individuals, MultiLabelInstances mlData, int n, int [] expectedVotes, double beta, boolean prune) {
 		List<IIndividual> ensembleMembers = null;
@@ -724,9 +719,15 @@ public class MLCAlgorithm extends MultiSGE {
 	 * @return New list of bsets for each subpopulation after communication
 	 */
 	public List<List<IIndividual>> communicateSubpops(List<List<IIndividual>> bset, List<IIndividual> ensemble, CommunicationType commType) {
+		/* 
+		 * Exchange communication
+		 * 	For each individual in the ensemble:
+		 * 		If it appears in other subpopulation, remove it (it is useless)
+		 * 		If it does not appear in other subpopulation, copy to it (it could be better predicted in other subpopulation)
+		 */
 		if(commType == CommunicationType.exchange) {
 			HashSet<String> set = new HashSet<String>();
-			String comb = null;
+			String comb_e = null;
 			
 			//Reset the count of individuals added/removed from each subpopulation
 			for(int p=0; p<numSubpop; p++) {
@@ -734,29 +735,36 @@ public class MLCAlgorithm extends MultiSGE {
 				currItRem[p] = 0;
 			}
 			
-			for(int i=0; i<ensemble.size(); i++) {
+			int p_e; 
+			//for(int i=0; i<ensemble.size(); i++) {
+			for(IIndividual e : ensemble) {
 				//For each individual in the ensemble, get its combination of labels
-				comb = Arrays.toString(((MultipBinArrayIndividual)ensemble.get(i)).getGenotype()); 
+				comb_e = Arrays.toString(((MultipBinArrayIndividual)e).getGenotype()); 
+				
+				//subpop index of current ensemble ind
+				p_e = ((MultipBinArrayIndividual)e).getSubpop();
 				
 				//The same combination could appear more than once in the ensemble
-					//We will consider only first one
-				if(! set.contains(comb)) {
-					set.add(comb);
+					//If it appears for the first time, do normal communication
+				if(! set.contains(comb_e)) {
+					set.add(comb_e);
 					
 					//For each subpopulation, except the one of the current individual,
 						//Update subpopulation based on the given individual
 					for(int p=0; p<numSubpop; p++) {
-						if(p != ((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()) {
-							updateSubpop(bset.get(p), ensemble.get(i));
+						if(p != p_e) {
+							updateSubpop(bset.get(p), e);
 						}
 					}
 					
-					if(!Utils.containsComb(bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()), (MultipBinArrayIndividual)ensemble.get(i))) {
+					//If the current ensemble member is not included in the current population, it is added with a probability to the subpopulation
+					//	This probability is higher as the number of generations increases
+					/*if(!Utils.containsComb(bset.get(p_e), (MultipBinArrayIndividual)e)) {
+						System.out.println("Here");
 						if(randgen.coin((generation*1.0)/maxOfGenerations)) {
-							bset.get(((MultipBinArrayIndividual)ensemble.get(i)).getSubpop()).add(ensemble.get(i));
-							//System.out.println("Add it!");
+							bset.get(p_e).add(e);
 						}
-					}
+					}*/
 				}
 			}
 			
@@ -765,16 +773,15 @@ public class MLCAlgorithm extends MultiSGE {
 				int[] votes = Utils.calculateVotesPerLabel(bset.get(p), numberLabels);
 				for(int i=0; i<votes.length; i++) {
 					if(votes[i] <= 0) {
+						//If all were removed, add a random individual with this label
 						bset.get(p).add(((MultipBinArraySpecies)species).createIndividual(((EagletIndividualCreator) provider).createRandomGenotype(i), p));
 					}
 				}
 			}
 			
+			//Evaluate new individuals
 			((MLCEvaluator)evaluator).evaluateMultip(bset);
-			for(int p=0; p<numSubpop; p++) {
-				//Evaluate new added individuals
-				//((MLCEvaluator)evaluator).evaluate(bset.get(p));
-				
+			for(int p=0; p<numSubpop; p++) {				
 				//If more individuals than allowed, select individuals
 				if(bset.get(p).size() > subpopSize) {					
 					bset.set(p, selectEnsembleMembers(bset.get(p), subpopSize, expectedVotesPerLabel, betaUpdatePop));
@@ -786,37 +793,39 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 			}
 		}
+		/* 
+		 * Operators communication
+		 * 	For each individual of all subpopulations
+		 * 		Crossover operator is applied with probability.
+		 * 			It is crossed with a random individual of another subpopulation
+		 * 		Mutation operator is applied with probability
+		 * 			It changes its subpopulation
+		 */
 		else if(commType == CommunicationType.operators) {
 			IIndividual randInd;
 			MultipBinArrayIndividual[] crossedInds;
-			List<MultipBinArrayIndividual> newInds = new ArrayList<MultipBinArrayIndividual>();
+			MultipBinArrayIndividual mutatedInd;
 
 			((RandomMutator) mutator.getDecorated()).setNumSubpopulations(numSubpop);
 			
 			// For each subpopulation, cross and mutate
 			for(int p=0; p<numSubpop; p++) {
-				//System.out.println("\tsize1: " + bset.get(p).size());
 				//For each individual
 				for(IIndividual ind : bset.get(p)) {
 					//Do crossover with random ind from other subpop
 					if(randgen.coin(probCrossComm)) {
 						randInd = Utils.selectRandomIndividual(bset, p, randgen);
 						crossedInds = ((RandomCrossover) recombinator.getDecorated()).recombineInds((MultipBinArrayIndividual) ind, (MultipBinArrayIndividual) randInd);
-						newInds.add(crossedInds[0]);
-						newInds.add(crossedInds[1]);
+						bset.get(((MultipBinArrayIndividual)crossedInds[0]).getSubpop()).add(crossedInds[0]);
+						bset.get(((MultipBinArrayIndividual)crossedInds[1]).getSubpop()).add(crossedInds[1]);
 					}
 					
+					//Mutate
 					if(randgen.coin(probMutComm)) {
-						newInds.add(((RandomMutator) mutator.getDecorated()).mutateIndSubpop((MultipBinArrayIndividual)ind));
+						mutatedInd = ((RandomMutator) mutator.getDecorated()).mutateIndSubpop((MultipBinArrayIndividual)ind);
+						bset.get(((MultipBinArrayIndividual)mutatedInd).getSubpop()).add(mutatedInd);
 					}
 				}
-			}
-			
-			int subpop;
-			//Move each new individual to its corresponding subpop
-			for(IIndividual ind : newInds) {
-				subpop = ((MultipBinArrayIndividual)ind).getSubpop();
-				bset.get(subpop).add(ind);
 			}
 			
 			//Evaluate new individuals
@@ -825,7 +834,6 @@ public class MLCAlgorithm extends MultiSGE {
 			//Select members for each subpop
 			for(int p=0; p<numSubpop; p++) {
 				if(bset.get(p).size() > subpopSize) {
-					//System.out.println("\tsize2: " + bset.get(p).size());
 					bset.set(p, selectEnsembleMembers(bset.get(p), subpopSize, expectedVotesPerLabel, betaUpdatePop));
 				}
 			}
@@ -835,7 +843,8 @@ public class MLCAlgorithm extends MultiSGE {
 	}
 	
 	/**
-	 * Update subpopulation given an individual appearing in the ensemble
+	 * Update subpopulation given an individual appearing in the ensemble.
+	 * It is used in exchange communication
 	 * 
 	 * @param list List of individuals of the subpopulation
 	 * @param ind Individual included in the ensemble
@@ -846,7 +855,6 @@ public class MLCAlgorithm extends MultiSGE {
 		//It has only 25% probabilities of being again included on the population
 		if(tabuSet.contains(((MultipBinArrayIndividual)ind).toString())){
 			if(randgen.coin(0.75)) {
-			//if(randgen.coin( 1 - ((generation*1.0)/maxOfGenerations)) ) {
 				//With probability, subpopulation will not be updated with same individual
 				return 0;
 			}
@@ -858,8 +866,8 @@ public class MLCAlgorithm extends MultiSGE {
 					//remove useless individual of population p
 					//(It is better predicted by individual ind than by oInd).				
 				list.remove(oInd);
-				tabuSet.add(((MultipBinArrayIndividual)ind).toString());
-				currItRem[((MultipBinArrayIndividual)ind).getSubpop()]++;
+				tabuSet.add(((MultipBinArrayIndividual)oInd).toString());
+				currItRem[((MultipBinArrayIndividual)oInd).getSubpop()]++;
 				return -1;
 			}
 		}
@@ -867,13 +875,8 @@ public class MLCAlgorithm extends MultiSGE {
 		//If the combination was not present in the population, maybe it would be better predicted with this data
 		//Add it with a probability
 			//0.5 prob if it is not in tabu set
-			//0.125 prob if it is in tabu set
-		double coinProb = 0.5;
-		//coinProb = 1 - ((generation*1.0) / maxOfGenerations);
-		/*if(tabuSet.contains(((MultipBinArrayIndividual)ind).toString())){
-			coinProb = 0.125;
-		}*/
-		
+			//0.125 prob if it is in tabu set --> 0.5*0.25 of first if
+		double coinProb = 0.5;		
 		if(randgen.coin(coinProb)) {
 			MultipBinArrayIndividual newInd = new MultipBinArrayIndividual(((MultipBinArrayIndividual)ind).getGenotype(), ((MultipBinArrayIndividual)list.get(0)).getSubpop());
 			list.add(newInd);
@@ -929,41 +932,43 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		byte [][] EnsembleMatrix = new byte[n][numberLabels];
 		
+		//List of members of the current ensemble
 		List<IIndividual> members = new ArrayList<IIndividual>();
 		
-		List<IIndividual> indsCopy = new ArrayList<IIndividual>();
-		indsCopy.addAll(individuals);
+		//Remaining individuals
+		List<IIndividual> remainingInds = new ArrayList<IIndividual>();
+		remainingInds.addAll(individuals);
 
 		//Sort individuals by fitness
-		indsCopy = bettersSelector.select(indsCopy, indsCopy.size());
+		remainingInds = bettersSelector.select(remainingInds, remainingInds.size());
 		
 		//Add first individual to ensemble members and remove from list
-		members.add(indsCopy.get(0));
-		System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
-		indsCopy.remove(0);
+		members.add(remainingInds.get(0));
+		System.arraycopy(((MultipBinArrayIndividual)remainingInds.get(0)).getGenotype(), 0, EnsembleMatrix[0], 0, numberLabels);
+		remainingInds.remove(0);
 		
 		//For each remaining individual, compute its new fitness as a combination of its fitness and the distance to the ensemble
-		int currentEnsembleSize = 1;
-		
 		double [] updatedFitnesses;
+		
+		//Add individuals until members has the desired size
 		do{
 			//Calculate weights with current expected votes array
 			weights = Utils.calculateFrequencies(expectedVotesCopy);
-			updatedFitnesses = new double[indsCopy.size()];
+			updatedFitnesses = new double[remainingInds.size()];
 			
 			//Update fitness for all individuals
-			for(int i=0; i<indsCopy.size(); i++){
-				updatedFitnesses[i] = beta * Utils.distanceToEnsemble(indsCopy.get(i), members, currentEnsembleSize, weights) + (1-beta)*((SimpleValueFitness)indsCopy.get(i).getFitness()).getValue();
+			for(int i=0; i<remainingInds.size(); i++){
+				updatedFitnesses[i] = beta * Utils.distanceToEnsemble(remainingInds.get(i), members, members.size(), weights) + (1-beta)*((SimpleValueFitness)remainingInds.get(i).getFitness()).getValue();
 			}
 			
-			//System.out.println("\t\t" + Arrays.toString(updatedFitnesses));
 			//Get best individual with updated fitness
 			int maxIndex = Utils.getMaxIndex(updatedFitnesses, randgen.choose(100));
 			
 			//Add individual to ensemble members
-			members.add(indsCopy.get(maxIndex));
+			members.add(remainingInds.get(maxIndex));
+			
 			//Update expectedVotesCopy to then recalculate weights (keep a minumum of 1)
-			IIndividual currInd = indsCopy.get(maxIndex);
+			IIndividual currInd = remainingInds.get(maxIndex);
 			byte [] currGen = ((MultipBinArrayIndividual)currInd).getGenotype();
 			for(int i=0; i<currGen.length; i++){
 				if(currGen[i] == 1){
@@ -973,12 +978,11 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 			}
 			
-			System.arraycopy(((MultipBinArrayIndividual)indsCopy.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[currentEnsembleSize], 0, numberLabels);
+			System.arraycopy(((MultipBinArrayIndividual)remainingInds.get(maxIndex)).getGenotype(), 0, EnsembleMatrix[members.size()], 0, numberLabels);
+			
 			//Remove individual from list
-			indsCopy.remove(maxIndex);
-						
-			currentEnsembleSize++;
-		}while(currentEnsembleSize < n);
+			remainingInds.remove(currInd);
+		}while(members.size() < n);
 		
 		//Ensure all labels are taken into account in the ensemble
 		ArrayList<Integer> noVotesLabels = new ArrayList<Integer>();
@@ -1003,7 +1007,7 @@ public class MLCAlgorithm extends MultiSGE {
 				members.remove(worstIndByLabel);
 				
 				//Add the individual including label noVotesLabels[r] that better matches with the ensemble
-				List<IIndividual> candidates = Utils.getIndividualsWithLabel(indsCopy, currentLabel);
+				List<IIndividual> candidates = Utils.getIndividualsWithLabel(remainingInds, currentLabel);
 				double [] candidatesFitness = new double[candidates.size()];
 				
 				for(int i=0; i<candidates.size(); i++){
@@ -1020,10 +1024,10 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 				
 				members.add(candidates.get(maxFitnessIndex));
-				indsCopy.remove(candidates.get(maxFitnessIndex));
+				remainingInds.remove(candidates.get(maxFitnessIndex));
 				
 				//Re-include the removed indivudual in the indsCopy set.
-				indsCopy.add(worstIndByLabel);
+				remainingInds.add(worstIndByLabel);
 			}
 		}while(noVotesLabels.size() > 0);
 		
@@ -1048,10 +1052,12 @@ public class MLCAlgorithm extends MultiSGE {
 		List<IIndividual> copyMembers = new ArrayList<IIndividual>(members);
 		
 		double bestFit = 0.0, currFit;
+		//Number of times that the ensemble is able to loose performance until stop pruning
 		int nWorst = (int)Math.round(members.size() * .1);
 		int failed = 0;
 		
 		try {
+			//Generate and evaluate ensemble with all individuals
 			ensemble = generateEnsemble(copyMembers, learner, copyMembers.size(), tableClassifiers);
 			ensemble.build(mlData);
 			
@@ -1063,22 +1069,25 @@ public class MLCAlgorithm extends MultiSGE {
 	     	bestFit = results.getMeasures().get(0).getValue();
 	     	System.out.println("Fitness: " + bestFit);
 	     	
+	     	//While haven't decrease the fitness nWorst times, try to prune next member
 	     	while(failed < nWorst) {
+	     		//Remove last member
 	     		copyMembers.remove(copyMembers.size()-1);
+	     		
+	     		//Generate, build, and evaluate ensemble with current members
 	     		ensemble = generateEnsemble(copyMembers, learner, copyMembers.size(), tableClassifiers);
 				ensemble.build(mlData);
 		     	results = eval.evaluate(ensemble, mlData, measures);
 		     	currFit = results.getMeasures().get(0).getValue();
 	     		
+		     	//If improves, set the new fitness and bestMembers; also reset failed
 		     	if(currFit > bestFit) {
 		     		bestFit = currFit;
 		     		bestMembers = new ArrayList<IIndividual>(ensemble.getEnsembleInds());
 		     		failed = 0;
-		     		//System.out.println("Improved: " + bestFit);
 		     	}
 		     	else {
 		     		failed++;
-		     		//System.out.println("Failed. ; " + currFit);
 		     	}
 	     	}
 		}
