@@ -758,12 +758,12 @@ public class MLCAlgorithm extends MultiSGE {
 					
 					//If the current ensemble member is not included in the current population, it is added with a probability to the subpopulation
 					//	This probability is higher as the number of generations increases
-					/*if(!Utils.containsComb(bset.get(p_e), (MultipBinArrayIndividual)e)) {
+					if(!Utils.containsComb(bset.get(p_e), (MultipBinArrayIndividual)e)) {
 						System.out.println("Here");
 						if(randgen.coin((generation*1.0)/maxOfGenerations)) {
 							bset.get(p_e).add(e);
 						}
-					}*/
+					}
 				}
 			}
 			
