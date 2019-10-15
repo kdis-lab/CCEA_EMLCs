@@ -642,6 +642,7 @@ public class MLCAlgorithm extends MultiSGE {
 			System.out.println("--- MAX GEN REACHED ---");
 			
 			if(bestEnsemble == null) {
+				System.out.println("Best ensemble is null.");
 				//Join all individuals
 				List<IIndividual> allInds = new ArrayList<IIndividual>();
 				for(int p=0; p<numSubpop; p++) {
@@ -649,7 +650,7 @@ public class MLCAlgorithm extends MultiSGE {
 				}
 				
 				//Generate ensemble with all individuals
-				ensemble = generateAndBuildEnsemble(allInds, fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, true);
+				ensemble = generateAndBuildEnsemble(allInds, fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, prune);
 				
 				//Evaluate final ensemble
 				EnsembleMLCEvaluator ensembleEval = new EnsembleMLCEvaluator(ensemble, fullDatasetTrain);
@@ -658,7 +659,7 @@ public class MLCAlgorithm extends MultiSGE {
 			else {
 				//Call to the generateAndBuildEnsemble method with the individuals of the best ensemble AND prune = true
 				//It just try to prune the best ensemble
-				ensemble = generateAndBuildEnsemble(bestEnsemble.getEnsembleInds(), fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, true);
+				ensemble = generateAndBuildEnsemble(bestEnsemble.getEnsembleInds(), fullDatasetTrain, numClassifiers, expectedVotesPerLabel, betaEnsembleSelection, prune);
 			}
 			
 
@@ -804,13 +805,16 @@ public class MLCAlgorithm extends MultiSGE {
 			IIndividual randInd;
 			MultipBinArrayIndividual[] crossedInds;
 			MultipBinArrayIndividual mutatedInd;
+			IIndividual ind;
 
 			((RandomMutator) mutator.getDecorated()).setNumSubpopulations(numSubpop);
 			
 			// For each subpopulation, cross and mutate
 			for(int p=0; p<numSubpop; p++) {
 				//For each individual
-				for(IIndividual ind : bset.get(p)) {
+				for(int i=0; i<bset.get(p).size(); i++) {
+				//for(IIndividual ind : bset.get(p)) {
+					ind = bset.get(p).get(i);
 					//Do crossover with random ind from other subpop
 					if(randgen.coin(probCrossComm)) {
 						randInd = Utils.selectRandomIndividual(bset, p, randgen);
@@ -1052,8 +1056,9 @@ public class MLCAlgorithm extends MultiSGE {
 		
 		double bestFit = 0.0, currFit;
 		//Number of times that the ensemble is able to loose performance until stop pruning
-		int nWorst = (int)Math.round(members.size() * .1);
+		int nWorst = (int)Math.round(members.size() * 1) - 1;
 		int failed = 0;
+		int nEnd = 0;
 		
 		try {
 			//Generate and evaluate ensemble with all individuals
@@ -1067,11 +1072,13 @@ public class MLCAlgorithm extends MultiSGE {
 	     	results = eval.evaluate(ensemble, mlData, measures);
 	     	bestFit = results.getMeasures().get(0).getValue();
 	     	System.out.println("Fitness: " + bestFit);
+	     	IIndividual toRemove;
 	     	
 	     	//While haven't decrease the fitness nWorst times, try to prune next member
 	     	while(failed < nWorst) {
-	     		//Remove last member
-	     		copyMembers.remove(copyMembers.size()-1);
+	     		//Remove last member (ignore those that did not improve removing them)
+	     		toRemove = copyMembers.get(copyMembers.size()-1-nEnd);
+	     		copyMembers.remove(toRemove);
 	     		
 	     		//Generate, build, and evaluate ensemble with current members
 	     		ensemble = generateEnsemble(copyMembers, learner, copyMembers.size(), tableClassifiers);
@@ -1086,6 +1093,8 @@ public class MLCAlgorithm extends MultiSGE {
 		     		failed = 0;
 		     	}
 		     	else {
+		     		copyMembers.add(toRemove);
+		     		nEnd++;
 		     		failed++;
 		     	}
 	     	}
