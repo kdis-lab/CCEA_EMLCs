@@ -1075,9 +1075,10 @@ public class MLCAlgorithm extends MultiSGE {
 	     	IIndividual toRemove;
 	     	
 	     	//While haven't decrease the fitness nWorst times, try to prune next member
-	     	while(failed < nWorst) {
-	     		//Remove last member (ignore those that did not improve removing them)
-	     		toRemove = copyMembers.get(copyMembers.size()-1-nEnd);
+	     	//while(failed < nWorst) {
+	     	for(int i=(members.size()-1); i>=0; i--) {
+	     		//Remove corresponding member
+	     		toRemove = members.get(i);
 	     		copyMembers.remove(toRemove);
 	     		
 	     		//Generate, build, and evaluate ensemble with current members

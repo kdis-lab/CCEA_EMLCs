@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Random;
 
 import eaglet.individualCreator.EagletIndividualCreator;
+import mulan.classifier.MultiLabelLearner;
+import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.InvalidDataFormatException;
 import mulan.data.MultiLabelInstances;
 import net.sf.jclec.IIndividual;
@@ -15,6 +17,7 @@ import net.sf.jclec.binarray.MultipBinArrayIndividual;
 import net.sf.jclec.binarray.MultipBinArraySpecies;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.util.random.IRandGen;
+import weka.classifiers.trees.J48;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -713,5 +716,24 @@ public class Utils {
 		}
 		
 		return votesPerLabel;
+	}
+	
+	public static MultiLabelLearner buildLearner(MultipBinArrayIndividual ind, MultiLabelInstances mlData) {
+		DatasetTransformation dtT = new DatasetTransformation(mlData, ind.getGenotype());
+		dtT.transformDataset();
+		MultiLabelInstances newData = dtT.getModifiedDataset();
+	
+		MultiLabelLearner mll = new LabelPowerset2(new J48());
+	
+		((LabelPowerset2)mll).setSeed(1);
+		
+		try {
+			mll.build(newData);
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return mll;
 	}
 }
