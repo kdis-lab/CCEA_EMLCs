@@ -3,6 +3,7 @@ package eaglet.algorithm;
 import java.util.Hashtable;
 import java.util.List;
 
+import eaglet.utils.Utils;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.TechnicalInformation;
@@ -70,6 +71,11 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 */
 	int seed;
 	
+	/**
+	 * All training data
+	 */
+	MultiLabelInstances [] trainData;
+	
 	
 	/**
 	 * Constructor 
@@ -79,13 +85,14 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 	 * @param numClassifiers Number of classifiers
 	 * @param tableClassifiers Table storing the previously built classifiers
 	 */
-	public EnsembleMLC(List<IIndividual> EnsembleInds, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers)
+	public EnsembleMLC(List<IIndividual> EnsembleInds, MultiLabelLearner baseLearner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers, MultiLabelInstances [] trainData)
 	{
 		super(baseLearner);
 		
 		this.EnsembleInds = EnsembleInds;		
 		this.numClassifiers = numClassifiers;
 		this.tableClassifiers = tableClassifiers;
+		this.trainData = trainData;
 	}
 	
 	/**
@@ -282,8 +289,16 @@ public class EnsembleMLC extends MultiLabelMetaLearner {
 			for(int i = 0; i < numClassifiers; i++)
 			{
 				//Get classifier from table
-				String s = EnsembleInds.get(i).toString();
-				Ensemble[i] = tableClassifiers.get(s);
+				
+				if(tableClassifiers == null) {
+					Ensemble[i] = Utils.buildLearner((MultipBinArrayIndividual) EnsembleInds.get(i), trainData[((MultipBinArrayIndividual) EnsembleInds.get(i)).getSubpop()]);
+				}
+				else {
+					String s = EnsembleInds.get(i).toString();
+					Ensemble[i] = tableClassifiers.get(s);
+				}
+				
+				
 			}
 
 			//Sets wieghts evenly

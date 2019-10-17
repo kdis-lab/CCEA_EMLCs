@@ -207,7 +207,10 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	     	  	
 	     	  	//Put fitness and built classifier in tables
 	     	  	tableFitness.put(s, fitness);
-	     	  	tableClassifiers.put(s, mll.makeCopy());
+	     	  	if(tableClassifiers != null) {
+	     	  		tableClassifiers.put(s, mll.makeCopy());
+	     	  	}
+	     	  	
 				
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();

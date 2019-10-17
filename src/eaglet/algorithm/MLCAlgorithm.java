@@ -365,6 +365,10 @@ public class MLCAlgorithm extends MultiSGE {
 		if(! configuration.containsKey("weightVotesByFrequency")) {
 			configuration.addProperty("weightVotesByFrequency", "false");
 		}
+		
+		if(! configuration.containsKey("use-table-classifiers")) {
+			configuration.addProperty("use-table-classifiers", "true");
+		}
 	}
 	
 	
@@ -489,6 +493,11 @@ public class MLCAlgorithm extends MultiSGE {
 			// Set genetic operator settings
 			((EagletMutator) mutator.getDecorated()).setNumLabels(numberLabels);
 			((RandomCrossover) recombinator.getDecorated()).setNumLabels(numberLabels);
+			
+			boolean useTableClassifiers = configuration.getBoolean("use-table-classifiers");
+			if(!useTableClassifiers) {
+				tableClassifiers = null;
+			}
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -910,7 +919,7 @@ public class MLCAlgorithm extends MultiSGE {
 	 * @return Ensemble generated
 	 */
 	private EnsembleMLC generateEnsemble(List<IIndividual> members, MultiLabelLearner learner, int numClassifiers, Hashtable<String, MultiLabelLearner> tableClassifiers){
-		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers);
+		EnsembleMLC ensemble = new EnsembleMLC(members, learner, numClassifiers, tableClassifiers, datasetsTrain);
 		ensemble.setThreshold(predictionThreshold);
 		ensemble.setSeed((int)seed);
 		return ensemble;
