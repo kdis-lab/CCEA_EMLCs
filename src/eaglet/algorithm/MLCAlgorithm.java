@@ -1055,10 +1055,6 @@ public class MLCAlgorithm extends MultiSGE {
 		List<IIndividual> copyMembers = new ArrayList<IIndividual>(members);
 		
 		double bestFit = 0.0, currFit;
-		//Number of times that the ensemble is able to loose performance until stop pruning
-		int nWorst = (int)Math.round(members.size() * 1) - 1;
-		int failed = 0;
-		int nEnd = 0;
 		
 		try {
 			//Generate and evaluate ensemble with all individuals
@@ -1091,12 +1087,9 @@ public class MLCAlgorithm extends MultiSGE {
 		     	if(currFit > bestFit) {
 		     		bestFit = currFit;
 		     		bestMembers = new ArrayList<IIndividual>(ensemble.getEnsembleInds());
-		     		failed = 0;
 		     	}
 		     	else {
 		     		copyMembers.add(toRemove);
-		     		nEnd++;
-		     		failed++;
 		     	}
 	     	}
 		}
