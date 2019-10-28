@@ -16,7 +16,6 @@ import net.sf.jclec.binarray.*;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
-import preliminaryStudy.algorithm.EnsembleMLC_Multip;
 
 public class StudyB {
 	
