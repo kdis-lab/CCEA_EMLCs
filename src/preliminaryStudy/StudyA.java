@@ -16,12 +16,12 @@ import net.sf.jclec.binarray.*;
 import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
-import preliminaryStudy.StudyUtils;
 import preliminaryStudy.algorithm.EnsembleMLC_Multip;
 
 public class StudyA {
 	
 	public static void main(String [] args) {
+		/*
 		Hashtable<String, MultiLabelLearner> tableClassifiers = new Hashtable<String, MultiLabelLearner>();
 		MultiLabelLearner learner = new LabelPowerset2(new J48());
 		((LabelPowerset2)learner).setSeed(1);
@@ -143,6 +143,8 @@ public class StudyA {
     			pw.close();
     		}
 		}
+	
+	*/
 	}
 	
 
