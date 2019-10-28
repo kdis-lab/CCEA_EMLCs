@@ -159,6 +159,8 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 		//Genotype to string
 		String s = ((MultipBinArrayIndividual) ind).toString();
 		
+		MultiLabelInstances newDatasetTrain=null, newDatasetValidation=null;
+		
 		double fitness = -1;
 		
 		if(tableFitness.containsKey(s))
@@ -174,14 +176,14 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 				//Filter train dataset
 				DatasetTransformation dtT = new DatasetTransformation(datasetTrain[p], genotype);
 				dtT.transformDataset();
-				MultiLabelInstances newDatasetTrain = dtT.getModifiedDataset();
+				newDatasetTrain = dtT.getModifiedDataset();
 				
 				//Build multilabel learner
 				MultiLabelLearner mll = learner.makeCopy();
 				mll.build(newDatasetTrain);
 				
 
-				MultiLabelInstances newDatasetValidation = null;
+				newDatasetValidation = null;
 				if(datasetValidation != null)
 				{
 					//Filter validation dataset
@@ -211,7 +213,7 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 	     	  		tableClassifiers.put(s, mll.makeCopy());
 	     	  	}
 	     	  	
-				
+				mll = null;
 			} catch (IllegalArgumentException e) {
 				e.printStackTrace();
 			} catch (Exception e) {
@@ -219,6 +221,8 @@ public class MLCEvaluator extends MultipAbstractParallelEvaluator {
 			}	
 		}
 		
+		newDatasetTrain = null;
+		newDatasetValidation = null;
 		//Set individual fitness
 		ind.setFitness(new SimpleValueFitness(fitness));
 	}

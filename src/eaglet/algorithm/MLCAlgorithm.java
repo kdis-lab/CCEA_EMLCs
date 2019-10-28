@@ -215,6 +215,11 @@ public class MLCAlgorithm extends MultiSGE {
 	 */
 	int avgVotes = 10;
 	
+	/**
+	 * Number of cores used to evaluate
+	 */
+	int nCores = 0;
+	
 	
 	/**
 	 * Constructor
@@ -369,6 +374,10 @@ public class MLCAlgorithm extends MultiSGE {
 		if(! configuration.containsKey("use-table-classifiers")) {
 			configuration.addProperty("use-table-classifiers", "true");
 		}
+		
+		if(! configuration.containsKey("number-cores")) {
+			configuration.addProperty("number-cores", "0");
+		}
 	}
 	
 	
@@ -485,6 +494,7 @@ public class MLCAlgorithm extends MultiSGE {
 			((MLCEvaluator) evaluator).setTableClassifiers(tableClassifiers);
 			((MLCEvaluator) evaluator).setLearner(learner);
 			((MLCEvaluator) evaluator).setDatasetsTrain(datasetsTrain);
+			((MLCEvaluator) evaluator).setnCores(4);
 			if(evalType == EvalType.full) {
 				((MLCEvaluator) evaluator).setDatasetValidation(fullDatasetTrain);
 			}

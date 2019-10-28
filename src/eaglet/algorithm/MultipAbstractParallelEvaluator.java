@@ -26,6 +26,8 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 
 	public long executionTime = 0;
 	
+	public int nCores = 0;
+	
 	/**
 	 * Empty constructor.
 	 */
@@ -33,6 +35,21 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	public MultipAbstractParallelEvaluator() 
 	{
 		super();
+		nCores = Runtime.getRuntime().availableProcessors();
+	}
+	
+	/**
+	 * Setter for number of cores
+	 * 
+	 * @param nCores Number of cores to evaluate
+	 */
+	public void setnCores(int nCores) {
+		if(nCores <= 0) {
+			nCores = Runtime.getRuntime().availableProcessors();
+		}
+		else {
+			this.nCores = nCores;
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////
@@ -53,7 +70,7 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	{
 		long time = System.currentTimeMillis();
 		
-		ExecutorService threadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		ExecutorService threadExecutor = Executors.newFixedThreadPool(nCores); //Runtime.getRuntime().availableProcessors()
 		
 		for (IIndividual ind : inds)
 		{
@@ -83,7 +100,7 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	{
 		long time = System.currentTimeMillis();
 		
-		ExecutorService threadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		ExecutorService threadExecutor = Executors.newFixedThreadPool(nCores);
 		
 		for(List<IIndividual> subpop : bset) {
 			for (IIndividual ind : subpop)
