@@ -74,15 +74,13 @@ public class MultiSGE extends MultiSG
 				cset.get(p).remove(worstc);
 				cset.get(p).add(bestb);
 			}
+			bset.set(p, new ArrayList<>(cset.get(p)));
+			//Order individuals
+			bset.set(p, bettersSelector.select(bset.get(p), bset.get(p).size()));
 			
-			bset.set(p, cset.get(p));
-			
+			pset.get(p).clear();
 			rset.get(p).clear();
 			cset.get(p).clear();
 		}
-
-		pset = new ArrayList<List<IIndividual>>(numSubpop);
-		cset = new ArrayList<List<IIndividual>>(numSubpop);
-		rset = new ArrayList<List<IIndividual>>(numSubpop);	
 	}
 }

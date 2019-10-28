@@ -1,6 +1,8 @@
 # Co-EAGLET: CoEvolutionary AlGorithm for multi-Label Ensemble opTimization
 
 Co-EAGLET is a coevolutionary algorithm, based on [EAGLET](https://github.com/kdis-lab/EAGLET).
+In this case, instead of one population, the algorithm is based on the use of several subpopulations at the same time.
+Further, individuals are represented as lists and not binary arrays.
 
 In this repository we provide the code of Co-EAGLET, distributed under the GPLv3 License. Co-EAGLET has been implemented using JCLEC [[Ven08]](#Ven08), Mulan [[Tso11]](#Tso11), and Weka [[Hal09]](#Hal09) libraries.
 

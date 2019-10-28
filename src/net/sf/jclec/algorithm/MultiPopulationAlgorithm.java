@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.jclec.algorithm.PopulationAlgorithm;
+import net.sf.jclec.listind.MultipListCreator;
+import net.sf.jclec.util.random.IRandGen;
 import net.sf.jclec.IIndividual;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
+
 import org.apache.commons.configuration.Configuration;
 
 /**
@@ -31,6 +34,9 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	
 	/** Number of individuals in each subpopulation */
 	protected int subpopSize;
+	
+	/** Number of generations between communications */
+	protected int generationsComm;
 		
 	/** Actual individuals set */
 	protected List<List<IIndividual>> bset;
@@ -43,6 +49,9 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	
 	/** Individuals to replace */
 	protected transient List<List<IIndividual>> rset;
+	
+	/** Random number generator */
+	protected IRandGen randgen;
 
 	/////////////////////////////////////////////////////////////////
 	// ------------------------------------------------- Constructors
@@ -157,6 +166,10 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 		// Population size
 		int numSubpop = configuration.getInt("number-subpop");
 		setNumSubpop(numSubpop);
+		
+		generationsComm = configuration.getInt("ngenerations-comm");
+		
+		randgen = randGenFactory.createRandGen();
 	}
 	
 	
@@ -202,20 +215,23 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	 * of evolution
 	 */
 	protected void doInit() 
-	{
+	{		
 		//Calculate individuals by subpopulation
 		subpopSize = populationSize / numSubpop;
 		
-		for(int i=0; i<numSubpop; i++) {
+		bset = new ArrayList<List<IIndividual>>(numSubpop);
+		pset = new ArrayList<List<IIndividual>>(numSubpop);
+		cset = new ArrayList<List<IIndividual>>(numSubpop);
+		rset = new ArrayList<List<IIndividual>>(numSubpop);
+		
+		for(int p=0; p<numSubpop; p++) {
 			//Initialize each population
-			bset.set(i, provider.provide(subpopSize));
-
-			pset = new ArrayList<List<IIndividual>>(numSubpop);
-			cset = new ArrayList<List<IIndividual>>(numSubpop);
-			rset = new ArrayList<List<IIndividual>>(numSubpop);
+			((MultipListCreator) provider).setSubpopId(p);
+			List<IIndividual> prov = provider.provide(subpopSize);
+			bset.add(p, prov);
 			
 			// Evaluate individuals
-			evaluator.evaluate(bset.get(i));
+			evaluator.evaluate(bset.get(p));
 		}
 
 		// Do Control
@@ -250,6 +266,11 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	protected abstract void doGeneration();
 	
 	/**
+	 * Communicate subpopulations
+	 */
+	protected abstract void doCommunication();
+	
+	/**
 	 * Select individuals to extinct in this generation.
 	 */
 	protected abstract void doReplacement();
@@ -280,6 +301,10 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 	 */
 	protected void doControl()
 	{
+		if ((generation % generationsComm) == 0 && generation > 0) {
+			doCommunication();
+		}
+		
 		// If maximum number of generations is exceeded, evolution is
 		// finished
 		if (generation >= maxOfGenerations) {
@@ -287,6 +312,7 @@ public abstract class MultiPopulationAlgorithm extends PopulationAlgorithm
 			state = FINISHED;
 			return;
 		}
+		
 		// If maximum number of evaluations is exceeded, evolution is
 		// finished
 		if (evaluator.getNumberOfEvaluations() > maxOfEvaluations) {

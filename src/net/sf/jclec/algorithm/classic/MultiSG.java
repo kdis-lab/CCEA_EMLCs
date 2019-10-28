@@ -8,9 +8,13 @@ import net.sf.jclec.IIndividual;
 
 import net.sf.jclec.base.FilteredMutator;
 import net.sf.jclec.base.FilteredRecombinator;
+import net.sf.jclec.listind.MultipListGenotype;
+import net.sf.jclec.listind.MultipListIndividual;
 import net.sf.jclec.algorithm.MultiPopulationAlgorithm;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
+
+import coeagletB.algorithm.MultipAbstractParallelEvaluator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -305,9 +309,10 @@ public class MultiSG extends MultiPopulationAlgorithm
 		double recProb = configuration.getDouble("recombinator[@rec-prob]");
 		setRecombinationProb(recProb);
 		// Mutator 
+		String mutatorClassname = null;
 		try {
 			// Mutator classname
-			String mutatorClassname = 
+			mutatorClassname = 
 				configuration.getString("mutator[@type]");
 			// Recombinator class
 			Class<? extends IMutator> mutatorClass = 
@@ -328,7 +333,7 @@ public class MultiSG extends MultiPopulationAlgorithm
 			throw new ConfigurationRuntimeException("Illegal mutator classname");
 		} 
 		catch (InstantiationException e) {
-			throw new ConfigurationRuntimeException("Problems creating an instance of mutator", e);
+			throw new ConfigurationRuntimeException("Problems creating an instance of mutator " + mutatorClassname, e);
 		} 
 		catch (IllegalAccessException e) {
 			throw new ConfigurationRuntimeException("Problems creating an instance of mutator", e);
@@ -401,9 +406,10 @@ public class MultiSG extends MultiPopulationAlgorithm
 				cset.get(i).add(ind);
 			}
 			// Evaluate all new individuals
-			evaluator.evaluate(cset.get(i));	
+			//evaluator.evaluate(cset.get(i));	
 		}
-		
+		((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(cset);
+
 		
 	}
 
@@ -420,14 +426,27 @@ public class MultiSG extends MultiPopulationAlgorithm
 	protected void doUpdate() 
 	{
 		for(int p=0; p<numSubpop; p++) {
-			bset.set(p, cset.get(p));
-			
+			bset.get(p).clear();
+			bset.get(p).addAll(cset.get(p));
+
+			pset.get(p).clear();
 			rset.get(p).clear();
 			cset.get(p).clear();
 		}
-		
-		pset = new ArrayList<List<IIndividual>>(numSubpop);
-		cset = new ArrayList<List<IIndividual>>(numSubpop);
-		rset = new ArrayList<List<IIndividual>>(numSubpop);
+	}
+	
+	@Override
+	protected void doCommunication() 
+	{
+		for(int p=0; p<numSubpop; p++) {
+			MultipListIndividual best = (MultipListIndividual)bset.get(p).get(0).copy();
+			int r;
+			do {
+				r = randgen.choose(0, numSubpop);
+			}while(r == best.getGenotype().subpop);
+			
+			best.setGenotype(new MultipListGenotype(r, best.getGenotype().genotype));
+			bset.get(r).add(best);
+		}
 	}
 }

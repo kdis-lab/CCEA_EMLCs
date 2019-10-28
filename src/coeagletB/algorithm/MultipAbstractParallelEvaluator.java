@@ -1,4 +1,4 @@
-package eaglet.algorithm;
+package coeagletB.algorithm;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -9,7 +9,7 @@ import net.sf.jclec.IIndividual;
 import net.sf.jclec.base.AbstractEvaluator;
 
 /**
- * IEvaluator parallel abstract implementation. 
+ * Parallel abstract evaluator for multi-population algorithms
  * 
  * @author Alberto Cano
  * @author Sebastian Ventura
@@ -26,8 +26,6 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 
 	public long executionTime = 0;
 	
-	public int nCores = 0;
-	
 	/**
 	 * Empty constructor.
 	 */
@@ -35,21 +33,6 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	public MultipAbstractParallelEvaluator() 
 	{
 		super();
-		nCores = Runtime.getRuntime().availableProcessors();
-	}
-	
-	/**
-	 * Setter for number of cores
-	 * 
-	 * @param nCores Number of cores to evaluate
-	 */
-	public void setnCores(int nCores) {
-		if(nCores <= 0) {
-			nCores = Runtime.getRuntime().availableProcessors();
-		}
-		else {
-			this.nCores = nCores;
-		}
 	}
 
 	/////////////////////////////////////////////////////////////////
@@ -70,7 +53,7 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	{
 		long time = System.currentTimeMillis();
 		
-		ExecutorService threadExecutor = Executors.newFixedThreadPool(nCores); //Runtime.getRuntime().availableProcessors()
+		ExecutorService threadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		
 		for (IIndividual ind : inds)
 		{
@@ -100,7 +83,7 @@ public abstract class MultipAbstractParallelEvaluator extends AbstractEvaluator
 	{
 		long time = System.currentTimeMillis();
 		
-		ExecutorService threadExecutor = Executors.newFixedThreadPool(nCores);
+		ExecutorService threadExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		
 		for(List<IIndividual> subpop : bset) {
 			for (IIndividual ind : subpop)

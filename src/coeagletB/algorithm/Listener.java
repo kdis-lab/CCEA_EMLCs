@@ -1,4 +1,4 @@
-package eaglet.algorithm;
+package coeagletB.algorithm;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -20,6 +20,7 @@ import mulan.classifier.MultiLabelOutput;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.Evaluator;
+import mulan.evaluation.MulanEnsembleEvaluator;
 import mulan.evaluation.measure.AveragePrecision;
 import mulan.evaluation.measure.Coverage;
 import mulan.evaluation.measure.ErrorSetSize;
@@ -54,6 +55,7 @@ import net.sf.jclec.IConfigure;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.algorithm.MultiPopulationAlgorithm;
 import net.sf.jclec.fitness.SimpleValueFitness;
+import net.sf.jclec.listind.MultipListIndividual;
 
 /**
  * Class implementing the listener of the algorithm
@@ -61,7 +63,7 @@ import net.sf.jclec.fitness.SimpleValueFitness;
  * @author Jose M. Moyano
  *
  */
-public class MLCListener implements IAlgorithmListener, IConfigure {
+public class Listener implements IAlgorithmListener, IConfigure {
 
 	/**
 	 * Serialization constant
@@ -105,7 +107,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	/**
 	 * Constructor
 	 */
-	public MLCListener()
+	public Listener()
 	{
 		super();
 	}
@@ -191,10 +193,10 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	@Override
 	public void algorithmFinished(AlgorithmEvent event) {
 		endTime = System.currentTimeMillis();
-		doDataReport((MLCAlgorithm) event.getAlgorithm());
-		doClassificationReport((MLCAlgorithm) event.getAlgorithm());
+		doDataReport((Alg) event.getAlgorithm());
+		doClassificationReport((Alg) event.getAlgorithm());
 		
-		closeReportFiles((MLCAlgorithm) event.getAlgorithm());
+		closeReportFiles((Alg) event.getAlgorithm());
 	}
 	
 	@Override
@@ -230,11 +232,11 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	 */
 	protected void doIterationReport(IAlgorithm algorithm)
 	{
-		int numSubpop = ((MLCAlgorithm)algorithm).getNumSubpop();
+		int numSubpop = ((MultiPopulationAlgorithm)algorithm).getNumSubpop();
 		
 		// Population individuals
 		List<List<IIndividual>> inds = ((MultiPopulationAlgorithm) algorithm).getMultiInhabitants();
-		int nSubpop = ((MultiPopulationAlgorithm) algorithm).getNumSubpop();
+		
 		// Actual generation
 		int generation = ((MultiPopulationAlgorithm) algorithm).getGeneration();
 		
@@ -245,12 +247,12 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 			try {
 				// Report file
 				File reportFile = new File(reportDirectory, reportFilename);
-				File[] bestIndFile = new File[nSubpop];
-				File[] avgIndFile = new File[nSubpop];
-				File[] addInds = new File[nSubpop];
-				File[] remInds = new File[nSubpop];
+				File[] bestIndFile = new File[numSubpop];
+				File[] avgIndFile = new File[numSubpop];
+				File[] addInds = new File[numSubpop];
+				File[] remInds = new File[numSubpop];
 				
-				for(int p=0; p<nSubpop; p++) {
+				for(int p=0; p<numSubpop; p++) {
 					bestIndFile[p] = new File("reports", "bestInd_" + p + ".rep");
 					avgIndFile[p] = new File("reports", "avgInd_" + p + ".rep");
 					addInds[p] = new File("reports", "addInds_" + p + ".rep");
@@ -264,10 +266,10 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 					
 				// Report writer
 				FileWriter reportWriter = null;
-				FileWriter[] bestIndWriter = new FileWriter[nSubpop];
-				FileWriter[] avgIndWriter = new FileWriter[nSubpop];
-				FileWriter[] addIndsWriter = new FileWriter[nSubpop];
-				FileWriter[] remIndsWriter = new FileWriter[nSubpop];
+				FileWriter[] bestIndWriter = new FileWriter[numSubpop];
+				FileWriter[] avgIndWriter = new FileWriter[numSubpop];
+				FileWriter[] addIndsWriter = new FileWriter[numSubpop];
+				FileWriter[] remIndsWriter = new FileWriter[numSubpop];
 				FileWriter tabuSizeWriter = null;
 				FileWriter iterEnsembleWriter = null;
 					
@@ -277,7 +279,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 					iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
 					tabuSizeWriter = new FileWriter(tabuSizeFile, true);
 					
-					for(int p=0; p<nSubpop; p++) {
+					for(int p=0; p<numSubpop; p++) {
 						bestIndWriter[p] = new FileWriter(bestIndFile[p], true);
 						avgIndWriter[p] = new FileWriter(avgIndFile[p], true);
 						addIndsWriter[p] = new FileWriter(addInds[p], true);
@@ -293,8 +295,9 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 				// Prints individuals
 				for(int i=0; i<inds.get(0).size(); i++) {
 					for(int p=0; p<numSubpop; p++) {
-						buffer.append(inds.get(p).get(i) + "; " + ((SimpleValueFitness)inds.get(p).get(i).getFitness()).getValue() + "; "); 
-						avgFitness[p] += ((SimpleValueFitness)inds.get(p).get(i).getFitness()).getValue();
+						List<IIndividual> currInds = ((Alg)algorithm).bettersSelector.select(inds.get(p), inds.get(p).size());
+						buffer.append((MultipListIndividual)currInds.get(i) + "; " + ((SimpleValueFitness)currInds.get(i).getFitness()).getValue() + "; "); 
+						avgFitness[p] += ((SimpleValueFitness)currInds.get(i).getFitness()).getValue();
 					}
 					buffer.append(System.getProperty("line.separator"));
 				}
@@ -311,19 +314,10 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 					
 					avgIndWriter[p].append(avgFitness[p] + "; ");
 					avgIndWriter[p].close();
-					
-					addIndsWriter[p].append(((MLCAlgorithm)algorithm).getCurrItAdd(p) + "; ");
-					addIndsWriter[p].close();
-					
-					remIndsWriter[p].append(((MLCAlgorithm)algorithm).getCurrItRem(p) + "; ");
-					remIndsWriter[p].close();
 				}
 				
-				iterEnsembleWriter.append(((MLCAlgorithm)algorithm).iterEnsembleFitness + "; ");
-				iterEnsembleWriter.close();
-				
-				tabuSizeWriter.append(((MLCAlgorithm)algorithm).getTabuSize() + "; ");
-				tabuSizeWriter.close();
+				//iterEnsembleWriter.append(((Alg)algorithm).iterEnsembleFitness + "; ");
+				//iterEnsembleWriter.close();
 			} 
 			catch (IOException e) {
 				throw new RuntimeException("Error writing report file");
@@ -331,16 +325,16 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 		}
 	}
 	
-	protected void closeReportFiles(MLCAlgorithm algorithm) {
+	protected void closeReportFiles(Alg algorithm) {
 		try {
-			int nSubpop = algorithm.getNumSubpop();
+			int numSubpop = algorithm.getNumSubpop();
 			
-			File[] bestIndFile = new File[nSubpop];
-			File[] avgIndFile = new File[nSubpop];
-			File[] addInds = new File[nSubpop];
-			File[] remInds = new File[nSubpop];
+			File[] bestIndFile = new File[numSubpop];
+			File[] avgIndFile = new File[numSubpop];
+			File[] addInds = new File[numSubpop];
+			File[] remInds = new File[numSubpop];
 			
-			for(int p=0; p<nSubpop; p++) {
+			for(int p=0; p<numSubpop; p++) {
 				bestIndFile[p] = new File("reports", "bestInd_" + p + ".rep");
 				avgIndFile[p] = new File("reports", "avgInd_" + p + ".rep");
 				addInds[p] = new File("reports", "addInds_" + p + ".rep");
@@ -350,10 +344,10 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 			File iterEnsembleFile = new File("reports", iterEnsembleFilename);
 			File tabuSizeFile = new File("reports", "tabuSize.rep");
 			
-			FileWriter[] bestIndWriter = new FileWriter[nSubpop];
-			FileWriter[] avgIndWriter = new FileWriter[nSubpop];
-			FileWriter[] addIndsWriter = new FileWriter[nSubpop];
-			FileWriter[] remIndsWriter = new FileWriter[nSubpop];
+			FileWriter[] bestIndWriter = new FileWriter[numSubpop];
+			FileWriter[] avgIndWriter = new FileWriter[numSubpop];
+			FileWriter[] addIndsWriter = new FileWriter[numSubpop];
+			FileWriter[] remIndsWriter = new FileWriter[numSubpop];
 			FileWriter tabuSizeWriter = null;
 			FileWriter iterEnsembleWriter = null;
 				
@@ -365,7 +359,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 			tabuSizeWriter.append(System.getProperty("line.separator"));
 			tabuSizeWriter.close();
 				
-			for(int p=0; p<nSubpop; p++) {
+			for(int p=0; p<numSubpop; p++) {
 				bestIndWriter[p] = new FileWriter(bestIndFile[p], true);
 				avgIndWriter[p] = new FileWriter(avgIndFile[p], true);
 				addIndsWriter[p] = new FileWriter(addInds[p], true);
@@ -392,7 +386,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 	 * 
 	 * @param algorithm Algorithm
 	 */
-    protected void doDataReport(MLCAlgorithm algorithm)
+    protected void doDataReport(Alg algorithm)
 	{   	
     	// Test report name
 		String testReportFilename = "TestDataReport.txt";
@@ -403,8 +397,8 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 		// Train Report file
 		File trainReportFile = new File(reportDirectory, trainReportFilename);
 		
-		classify(algorithm.getFullDatasetTrain(), algorithm.getEnsemble(), trainReportFile);
-		classify(algorithm.getDatasetTest(), algorithm.getEnsemble(), testReportFile);
+		classify(algorithm.getFullTrainData(), algorithm.getEnsemble(), trainReportFile);
+		classify(algorithm.getTestData(), algorithm.getEnsemble(), testReportFile);
 	}
     
     /**
@@ -414,7 +408,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
      * @param classifier Ensemble classifier
      * @param file File to write the predictions
      */
-    protected void classify(MultiLabelInstances mldata, EnsembleMLC classifier, File file)
+    protected void classify(MultiLabelInstances mldata, Ensemble classifier, File file)
     {
 		int[][] predicted = classifier.classify(mldata);
 		int numberLabels = mldata.getNumLabels();
@@ -446,18 +440,18 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
  	 * 
  	 * @param algorithm Algorithm
  	 */
-    protected void doClassificationReport(MLCAlgorithm algorithm)
+    protected void doClassificationReport(Alg algorithm)
     {
     	// Test report name
     	String testReportFilename = "TestClassificationReport.txt";
         // Train report name
     	String trainReportFilename = "TrainClassificationReport.txt";
            	
-        MultiLabelInstances datasetTrain = algorithm.getFullDatasetTrain();
-        MultiLabelInstances datasetTest = algorithm.getDatasetTest();        
+        MultiLabelInstances datasetTrain = algorithm.getFullTrainData();
+        MultiLabelInstances datasetTest = algorithm.getTestData();        
         
         //Build the classifier ENSURE IT WAS INICIALIZED WITH THE GENOTYPE!!!
-        EnsembleMLC classifier = algorithm.getEnsemble();
+        Ensemble classifier = algorithm.getEnsemble();
     	try {
     		 classifier.build(datasetTrain);
     	}catch (Exception e1) {
@@ -491,7 +485,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
      * @param algorithm Evolutionary algorithm
      * @param classifier Ensemble classifier
      */
-    private void doReport(String reportFilename, String globalReportFilename, MultiLabelInstances dataset, MLCAlgorithm algorithm,  EnsembleMLC classifier)
+    private void doReport(String reportFilename, String globalReportFilename, MultiLabelInstances dataset, Alg algorithm,  Ensemble classifier)
     {
     	//Report file
     	File reportFile = new File(reportDirectory, reportFilename);
@@ -503,7 +497,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
     	double evaluateTimeInit,  evaluateTimeEnd;
     	evaluateTimeInit = System.currentTimeMillis();
     	//Evaluating the classifier with the datasetTrain and dataSetTest
-    	Evaluator eval = new Evaluator();
+    	MulanEnsembleEvaluator eval = new MulanEnsembleEvaluator();
         Evaluation results = null;    			
     	try{
     		  List<Measure> measures = new ArrayList<Measure>();  	       
@@ -565,8 +559,8 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
 //			bw.write((algorithm.getEvaluator().getEvaluationTime() / 1000.0) + ",");
 			bw.write((((double)(endTime-initTime)) / 1000.0) + ",");
 			bw.write(((evaluateTime) / 1000.0) + ",");
-			bw.write(algorithm.getNumberOfEvaluatedIndividuals() + ", ");
-			bw.write(algorithm.getEnsemble().getNumClassifiers() + ", ");
+			//bw.write(algorithm.getNumberOfEvaluatedIndividuals() + ", ");
+			//bw.write(algorithm.getEnsemble().getNumClassifiers() + ", ");
 			
 			file.write(System.getProperty("line.separator") + "Ensemble of classifiers" + System.getProperty("line.separator"));
 			file.write(classifier.toString());
@@ -636,7 +630,7 @@ public class MLCListener implements IAlgorithmListener, IConfigure {
                // measures.add(new MeanAverageInterpolatedPrecision(numOfLabels, 10));
                // measures.add(new GeometricMeanAverageInterpolatedPrecision(numOfLabels, 10));
                 measures.add(new MicroAUC(numOfLabels));
-                measures.add(new MacroAUC(numOfLabels));
+                //measures.add(new MacroAUC(numOfLabels));
                // measures.add(new LogLoss());
             }
             // add hierarchical measures if applicable
