@@ -556,10 +556,10 @@ public class Utils {
 			limit = (int)Math.round(data.numInstances()*.67);
 			break;
 		case pct75:
-			limit = (int)Math.round(data.numInstances()*.67);
+			limit = (int)Math.round(data.numInstances()*.75);
 			break;
 		case pct80:
-			limit = (int)Math.round(data.numInstances()*.67);
+			limit = (int)Math.round(data.numInstances()*.80);
 			break;
 			
 		default:
