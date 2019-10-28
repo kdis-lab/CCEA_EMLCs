@@ -1,4 +1,4 @@
-package coeagletB.individualCreator;
+package coeaglet.individualCreator;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.DoubleStream;
 
-import coeagletB.utils.Utils;
+import coeaglet.utils.Utils;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.listind.MultipListCreator;
 import net.sf.jclec.listind.MultipListGenotype;

@@ -1,4 +1,4 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.util.ArrayList;
 import java.util.List;

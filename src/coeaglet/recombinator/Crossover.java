@@ -1,4 +1,4 @@
-package coeagletB.recombinator;
+package coeaglet.recombinator;
 
 import java.util.ArrayList;
 import java.util.Collections;

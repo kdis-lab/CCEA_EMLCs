@@ -1,11 +1,11 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.List;
 
-import coeagletB.utils.DatasetTransformation;
+import coeaglet.utils.DatasetTransformation;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;

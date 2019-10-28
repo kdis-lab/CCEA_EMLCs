@@ -1,10 +1,10 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import coeagletB.utils.Utils;
+import coeaglet.utils.Utils;
 import net.sf.jclec.IIndividual;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.listind.MultipListIndividual;

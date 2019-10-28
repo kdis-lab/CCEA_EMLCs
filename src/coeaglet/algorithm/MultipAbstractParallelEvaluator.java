@@ -1,4 +1,4 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;

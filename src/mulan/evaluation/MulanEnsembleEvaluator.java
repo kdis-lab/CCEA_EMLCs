@@ -2,7 +2,7 @@ package mulan.evaluation;
 
 import java.util.List;
 
-import coeagletB.algorithm.Ensemble;
+import coeaglet.algorithm.Ensemble;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.data.MultiLabelInstances;

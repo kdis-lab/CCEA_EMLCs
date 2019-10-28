@@ -1,4 +1,4 @@
-package coeagletB.utils;
+package coeaglet.utils;
 
 import weka.core.Instance;
 import weka.core.Instances;

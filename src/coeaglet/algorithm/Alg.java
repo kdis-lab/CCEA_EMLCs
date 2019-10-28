@@ -1,4 +1,4 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,11 +7,11 @@ import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
-import coeagletB.individualCreator.FrequencyBasedIndividualCreator;
-import coeagletB.mutator.Mutator;
-import coeagletB.utils.Utils;
-import coeagletB.utils.Utils.CommunicationType;
-import coeagletB.utils.Utils.EvalType;
+import coeaglet.individualCreator.FrequencyBasedIndividualCreator;
+import coeaglet.mutator.Mutator;
+import coeaglet.utils.Utils;
+import coeaglet.utils.Utils.CommunicationType;
+import coeaglet.utils.Utils.EvalType;
 import mulan.classifier.MultiLabelLearner;
 import mulan.classifier.transformation.LabelPowerset2;
 import mulan.core.MulanException;

@@ -1,4 +1,4 @@
-package coeagletB.algorithm;
+package coeaglet.algorithm;
 
 import java.io.BufferedWriter;
 import java.io.File;

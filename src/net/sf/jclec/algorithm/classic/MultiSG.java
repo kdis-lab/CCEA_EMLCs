@@ -14,7 +14,7 @@ import net.sf.jclec.algorithm.MultiPopulationAlgorithm;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
 
-import coeagletB.algorithm.MultipAbstractParallelEvaluator;
+import coeaglet.algorithm.MultipAbstractParallelEvaluator;
 
 import java.util.ArrayList;
 import java.util.List;
