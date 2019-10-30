@@ -29,10 +29,10 @@ import net.sf.jclec.util.random.IRandGen;
 import weka.classifiers.trees.J48;
 
 /**
- * Class implementing the main co-evolutionary algorithm for the optimization of multi-label ensembles. * 
+ * Class implementing the main co-evolutionary algorithm for the optimization of multi-label ensembles.
  * It is based on a Multiple populations algorithm (MultiSGE)
  * 
- * CoEAGLETB. More information at:
+ * CoEAGLET. More information at: https://github.com/i02momuj/CoEAGLET
  * 
  * @author Jose M. Moyano
  *
@@ -158,6 +158,12 @@ public class Alg extends MultiSGE {
 	 * Indicates if the ensemble is pruned or not in the last iteration
 	 */
 	boolean prune;
+	
+	/**
+	 * Parameter for the exponential function for the exchange communication. By default omega = 10
+	 * The lower the value, the higher the probability of communication
+	 */
+	double omega = 10;
 
 	
 	/**
@@ -339,7 +345,13 @@ public class Alg extends MultiSGE {
 			commType = CommunicationType.no;					
 			break;
 		case "exchange":
-			commType = CommunicationType.exchange;					
+			commType = CommunicationType.exchange;
+			if(! configuration.containsKey("omega")) {
+				omega = 10;
+			}
+			else {
+				omega = configuration.getDouble("omega");
+			}
 			break;
 		case "operators":
 			commType = CommunicationType.operators;
