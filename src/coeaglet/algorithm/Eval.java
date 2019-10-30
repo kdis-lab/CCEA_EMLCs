@@ -140,6 +140,10 @@ public class Eval extends MultipAbstractParallelEvaluator {
 		
 		double fitness = -1;
 		
+		for(Integer g : gen.genotype) {
+			fitness += g;
+		}
+		
 		//String key for tables
 		String s = gen.toString();
 		

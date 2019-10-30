@@ -537,13 +537,14 @@ public class Alg extends MultiSGE {
 			 * The probability of copy is biased by their position in the ensemble
 			 */
 			
-			double exp10 = Math.exp(10);
+			double omega = 10;
+			double expO = Math.exp(omega);
 			
 			for(int i=0; i<currentEnsemble.inds.size(); i++) {
 				//Probability to be selected is lower as it is deeper in the ensemble
 				//It is calculated as an exponential;
 					//It is transformed into an exponential in range [0-10] given its good shape and slope.
-				double prob = Math.exp(10 * ((1.0*nClassifiers - i)/nClassifiers)) / exp10;
+				double prob = Math.exp(omega * ((1.0*nClassifiers - i)/nClassifiers)) / expO;
 
 				if(randgen.coin(prob)) {
 					currInd = currentEnsemble.inds.get(i);

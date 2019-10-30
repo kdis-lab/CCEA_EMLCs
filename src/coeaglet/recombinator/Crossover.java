@@ -3,6 +3,7 @@ package coeaglet.recombinator;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import coeaglet.utils.Utils;
 import net.sf.jclec.listind.MultipListGenotype;
 import net.sf.jclec.listind.MultipListIndividual;
 import net.sf.jclec.listind.MultipListRecombinator;
@@ -95,8 +96,8 @@ public class Crossover extends MultipListRecombinator {
 			}
 					
 			//Shuffle sets
-			Collections.shuffle(set1);
-			Collections.shuffle(set2);
+			set1 = Utils.shuffle(set1, randgen);
+			set2 = Utils.shuffle(set2, randgen);
 					
 			//Create new sets with one half of each of them; and add repeated
 			ArrayList<Integer> newSet1 = new ArrayList<Integer>();

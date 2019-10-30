@@ -228,6 +228,15 @@ public class Utils {
 		return array;
 	}
 	
+	/**
+	 * Get a random individual belonging to a different subpopulation to the specified
+	 * 
+	 * @param pop Population of individuals (divided into different subpopulations)
+	 * @param avoidSubpop Subpopulation to avoid
+	 * @param randgen Random numbers generator
+	 * 
+	 * @return Individual
+	 */
 	public static IIndividual randomIndDifferentSubpop(List<List<IIndividual>> pop, int avoidSubpop, IRandGen randgen) {
 		//Select subpopulation
 		int sp;
@@ -237,5 +246,47 @@ public class Utils {
 		
 		return pop.get(sp).get(randgen.choose(0, pop.get(sp).size()));
 	}
+	
+	/**
+	 * Shuffles a given ArrayList
+	 * 
+	 * @param list Original list
+	 * @param randgen Random number generator
+	 * @return Shuffled ArrayList
+	 */
+	public static ArrayList<Integer> shuffle(ArrayList<Integer> list, IRandGen randgen){
+		int [] perm = randomPerm(list.size(), randgen);
+		
+		ArrayList<Integer> newList = new ArrayList<Integer>(list.size());
+		for(int i=0; i<list.size(); i++) {
+			newList.add(list.get(perm[i]));
+		}
+		
+		return newList;
+	}
 
+	/**
+	 * Get an array of random permutation with values in the range [0, size)
+	 * 
+	 * @param size Size of the array
+	 * @param randgen Random number generator
+	 * @return Random permutation
+	 */
+	public static int[] randomPerm(int size, IRandGen randgen) {
+		int [] perm = new int[size];
+		
+		for(int i=0; i<size; i++) {
+			perm[i] = i;
+		}
+		
+		int r, aux;
+		for(int i=0; i<size; i++) {
+			r = randgen.choose(0, size);
+			aux = perm[i];
+			perm[i] = perm[r];
+			perm[r] = aux;
+		}
+		
+		return perm;
+	}
 }
