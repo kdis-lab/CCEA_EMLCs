@@ -33,7 +33,6 @@ import mulan.evaluation.measure.GeometricMeanAveragePrecision;
 import mulan.evaluation.measure.HammingLoss;
 import mulan.evaluation.measure.HierarchicalLoss;
 import mulan.evaluation.measure.IsError;
-import mulan.evaluation.measure.MacroAUC;
 import mulan.evaluation.measure.MacroFMeasure;
 import mulan.evaluation.measure.MacroPrecision;
 import mulan.evaluation.measure.MacroRecall;
@@ -234,59 +233,45 @@ public class Listener implements IAlgorithmListener, IConfigure {
 	 * @param algorithm Algorithm
 	 */
 	protected void doIterationReport(IAlgorithm algorithm)
-	{
-		int numSubpop = ((MultiPopulationAlgorithm)algorithm).getNumSubpop();
-		
-		// Population individuals
-		List<List<IIndividual>> inds = ((MultiPopulationAlgorithm) algorithm).getMultiInhabitants();
-		
+	{		
 		// Actual generation
 		int generation = ((MultiPopulationAlgorithm) algorithm).getGeneration();
-		
+					
 		if (generation % reportFrequency == 0) 
 		{
+			int numSubpop = ((MultiPopulationAlgorithm)algorithm).getNumSubpop();
+			
+			// Population individuals
+			List<List<IIndividual>> inds = ((MultiPopulationAlgorithm) algorithm).getMultiInhabitants();
+			
 			String reportFilename = String.format("Iteration_%d.rep", generation);
 				
 			try {
 				// Report file
 				File reportFile = new File(reportDirectory, reportFilename);
+				File iterEnsembleFile = new File("reports", iterEnsembleFilename);
 				File[] bestIndFile = new File[numSubpop];
 				File[] avgIndFile = new File[numSubpop];
-				File[] addInds = new File[numSubpop];
-				File[] remInds = new File[numSubpop];
 				
 				for(int p=0; p<numSubpop; p++) {
 					bestIndFile[p] = new File("reports", "bestInd_" + p + ".rep");
 					avgIndFile[p] = new File("reports", "avgInd_" + p + ".rep");
-					addInds[p] = new File("reports", "addInds_" + p + ".rep");
-					remInds[p] = new File("reports", "removedInds_" + p + ".rep");
 				}
-
-				File iterEnsembleFile = new File("reports", iterEnsembleFilename);
-				File tabuSizeFile = new File("reports", "tabuSize.rep");
-					
-				double avgFitness[] = new double[numSubpop];
 					
 				// Report writer
 				FileWriter reportWriter = null;
+				FileWriter iterEnsembleWriter = null;
 				FileWriter[] bestIndWriter = new FileWriter[numSubpop];
 				FileWriter[] avgIndWriter = new FileWriter[numSubpop];
-				FileWriter[] addIndsWriter = new FileWriter[numSubpop];
-				FileWriter[] remIndsWriter = new FileWriter[numSubpop];
-				FileWriter tabuSizeWriter = null;
-				FileWriter iterEnsembleWriter = null;
 					
 				try {
 					reportFile.createNewFile();
 					reportWriter = new FileWriter (reportFile);
 					iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
-					tabuSizeWriter = new FileWriter(tabuSizeFile, true);
 					
 					for(int p=0; p<numSubpop; p++) {
 						bestIndWriter[p] = new FileWriter(bestIndFile[p], true);
 						avgIndWriter[p] = new FileWriter(avgIndFile[p], true);
-						addIndsWriter[p] = new FileWriter(addInds[p], true);
-						remIndsWriter[p] = new FileWriter(remInds[p], true);
 					}
 				}
 				catch(IOException e3){
@@ -300,27 +285,26 @@ public class Listener implements IAlgorithmListener, IConfigure {
 					for(int p=0; p<numSubpop; p++) {
 						List<IIndividual> currInds = ((Alg)algorithm).bettersSelector.select(inds.get(p), inds.get(p).size());
 						buffer.append((MultipListIndividual)currInds.get(i) + "; " + ((SimpleValueFitness)currInds.get(i).getFitness()).getValue() + "; "); 
-						avgFitness[p] += ((SimpleValueFitness)currInds.get(i).getFitness()).getValue();
 					}
 					buffer.append(System.getProperty("line.separator"));
-				}
-				for(int p=0; p<numSubpop; p++) {
-					avgFitness[p] /= inds.get(p).size();
 				}
 
 				reportWriter.append(buffer.toString());
 				reportWriter.close();
 				
+				List<MultipListIndividual> bests = ((Alg)algorithm).bestIndividuals();
+				double [] avgFitness = ((Alg)algorithm).avgFitnessSubpopulation();
+				
 				for(int p=0; p<numSubpop; p++) {
-					bestIndWriter[p].append(((SimpleValueFitness)inds.get(p).get(0).getFitness()).getValue() + "; ");
+					bestIndWriter[p].append(((SimpleValueFitness)bests.get(p).getFitness()).getValue() + "; ");
 					bestIndWriter[p].close();
 					
 					avgIndWriter[p].append(avgFitness[p] + "; ");
 					avgIndWriter[p].close();
 				}
 				
-				//iterEnsembleWriter.append(((Alg)algorithm).iterEnsembleFitness + "; ");
-				//iterEnsembleWriter.close();
+				iterEnsembleWriter.append(((Alg)algorithm).getCurrentEnsembleFitness() + "; ");
+				iterEnsembleWriter.close();
 			} 
 			catch (IOException e) {
 				throw new RuntimeException("Error writing report file");
@@ -334,48 +318,30 @@ public class Listener implements IAlgorithmListener, IConfigure {
 			
 			File[] bestIndFile = new File[numSubpop];
 			File[] avgIndFile = new File[numSubpop];
-			File[] addInds = new File[numSubpop];
-			File[] remInds = new File[numSubpop];
 			
 			for(int p=0; p<numSubpop; p++) {
 				bestIndFile[p] = new File("reports", "bestInd_" + p + ".rep");
 				avgIndFile[p] = new File("reports", "avgInd_" + p + ".rep");
-				addInds[p] = new File("reports", "addInds_" + p + ".rep");
-				remInds[p] = new File("reports", "removedInds_" + p + ".rep");
 			}
 
 			File iterEnsembleFile = new File("reports", iterEnsembleFilename);
-			File tabuSizeFile = new File("reports", "tabuSize.rep");
 			
 			FileWriter[] bestIndWriter = new FileWriter[numSubpop];
 			FileWriter[] avgIndWriter = new FileWriter[numSubpop];
-			FileWriter[] addIndsWriter = new FileWriter[numSubpop];
-			FileWriter[] remIndsWriter = new FileWriter[numSubpop];
-			FileWriter tabuSizeWriter = null;
 			FileWriter iterEnsembleWriter = null;
 				
 			iterEnsembleWriter = new FileWriter(iterEnsembleFile, true);
 			iterEnsembleWriter.append(System.getProperty("line.separator"));
 			iterEnsembleWriter.close();
-			
-			tabuSizeWriter = new FileWriter(tabuSizeFile, true);
-			tabuSizeWriter.append(System.getProperty("line.separator"));
-			tabuSizeWriter.close();
 				
 			for(int p=0; p<numSubpop; p++) {
 				bestIndWriter[p] = new FileWriter(bestIndFile[p], true);
 				avgIndWriter[p] = new FileWriter(avgIndFile[p], true);
-				addIndsWriter[p] = new FileWriter(addInds[p], true);
-				remIndsWriter[p] = new FileWriter(remInds[p], true);
 				
 				bestIndWriter[p].append(System.getProperty("line.separator"));
 				bestIndWriter[p].close();
 				avgIndWriter[p].append(System.getProperty("line.separator"));
 				avgIndWriter[p].close();
-				addIndsWriter[p].append(System.getProperty("line.separator"));
-				addIndsWriter[p].close();
-				remIndsWriter[p].append(System.getProperty("line.separator"));
-				remIndsWriter[p].close();
 			}
 		} 
 		catch (IOException e) {

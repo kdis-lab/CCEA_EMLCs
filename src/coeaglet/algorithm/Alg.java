@@ -102,7 +102,12 @@ public class Alg extends MultiSGE {
 	/**
 	 * Fitness of bestEnsemble
 	 */
-	double bestFitness = -1;
+	double bestEnsembleFitness = -1;
+	
+	/**
+	 * Current ensemble fitness (for listener purposes)
+	 */
+	double currentEnsembleFitness;
 	
 	/**
 	 * Ratio of instances sampled at each train data
@@ -212,10 +217,57 @@ public class Alg extends MultiSGE {
 	
 	/**
 	 * Getter for test data
-	 * @return
+	 * 
+	 * @return Test dataset
 	 */
 	public MultiLabelInstances getTestData() {
 		return testData;
+	}
+	
+	/**
+	 * Getter for current ensemble fitness
+	 * 
+	 * @return Fitness of the current ensemble
+	 */
+	public double getCurrentEnsembleFitness() {
+		return currentEnsembleFitness;
+	}
+	
+	/**
+	 * Get best individual of each subpopulation
+	 * 
+	 * @return List with best individual of each subpopulation
+	 */
+	public List<MultipListIndividual> bestIndividuals(){
+		List<MultipListIndividual> list = new ArrayList<MultipListIndividual>(numSubpop);
+		
+		for(int i=0; i<numSubpop; i++) {
+			list.add((MultipListIndividual) bettersSelector.select(bset.get(i), 1).get(0));
+		}
+		
+		return list;
+	}
+	
+	/**
+	 * Get the average fitness of the individuals of each subpopulation
+	 * 
+	 * @return Array with average fitness of each subpopulation
+	 */
+	public double[] avgFitnessSubpopulation() {
+		double [] avgFit = new double[numSubpop];
+		
+		for(int p=0; p<numSubpop; p++) {
+			avgFit[p] = 0;
+			for(int i=0; i<bset.get(p).size(); i++) {
+				avgFit[p] += ((SimpleValueFitness)bset.get(p).get(i).getFitness()).getValue();
+			}
+		}
+		
+		for(int p=0; p<numSubpop; p++) {
+			avgFit[p] /= bset.get(p).size();
+		}
+		
+		return avgFit;
 	}
 	
 	
@@ -388,11 +440,7 @@ public class Alg extends MultiSGE {
 			EnsembleSelection eSel = new EnsembleSelection(cset.get(p), bset.get(p).size(), nLabels, betaUpdatePop);
 			eSel.setRandgen(randgen);
 			eSel.selectEnsemble();
-			bset.set(p, eSel.getEnsemble());
-			
-			IIndividual best = bettersSelector.select(bset.get(p), 1).get(0);
-			System.out.println(best + " ; " + ((SimpleValueFitness)best.getFitness()).getValue());
-			
+			bset.set(p, eSel.getEnsemble());			
 			
 			//Clear rest of sets
 			pset.get(p).clear();
@@ -442,16 +490,16 @@ public class Alg extends MultiSGE {
 
 			//Evaluate ensemble
 			EnsembleEval eEval = new EnsembleEval(currentEnsemble, fullTrainData);
-			double eFitness = eEval.evaluate();
+			currentEnsembleFitness = eEval.evaluate();
 				
-			System.out.println("Fitness iter " + generation + ": " + eFitness);
+			System.out.println("Fitness iter " + generation + ": " + currentEnsembleFitness);
 			//System.out.println("currentEnsemble  votes: " + Arrays.toString(eSel.labelVotes));
 			
-			if(eFitness > bestFitness) {
+			if(currentEnsembleFitness > bestEnsembleFitness) {
 				System.out.println("\tNew best fitness!");
-				System.out.println(currentEnsemble);
+				//System.out.println(currentEnsemble);
 				bestEnsemble = currentEnsemble;
-				bestFitness = eFitness;
+				bestEnsembleFitness = currentEnsembleFitness;
 			}
 				
 			System.out.println();
