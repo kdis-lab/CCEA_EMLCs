@@ -258,13 +258,13 @@ public class Alg extends MultiSGE {
 		
 		for(int p=0; p<numSubpop; p++) {
 			avgFit[p] = 0;
-			for(int i=0; i<bset.get(p).size(); i++) {
+			for(int i=0; i<subpopSize; i++) {
 				avgFit[p] += ((SimpleValueFitness)bset.get(p).get(i).getFitness()).getValue();
 			}
 		}
 		
 		for(int p=0; p<numSubpop; p++) {
-			avgFit[p] /= bset.get(p).size();
+			avgFit[p] /= subpopSize;
 		}
 		
 		return avgFit;
@@ -411,8 +411,7 @@ public class Alg extends MultiSGE {
 			((FrequencyBasedIndividualCreator) provider).setSubpopId(p);
 			((FrequencyBasedIndividualCreator) provider).setaMin(3);
 			((FrequencyBasedIndividualCreator) provider).setAppearances(Utils.getAppearances(trainData[p]));
-			List<IIndividual> prov = provider.provide(subpopSize);
-			bset.add(p, prov);
+			bset.add(p, provider.provide(subpopSize));
 			
 			// Evaluate individuals
 			//evaluator.evaluate(bset.get(p));
@@ -428,9 +427,8 @@ public class Alg extends MultiSGE {
 	
 	@Override
 	protected void doUpdate() {
-		for(int p=0; p<numSubpop; p++) {
-			int subpopSize = bset.get(p).size();
-			
+		//Update each subpopulation
+		for(int p=0; p<numSubpop; p++) {			
 			//Add to rset all individuals from bset
 			for(IIndividual bInd : bset.get(p)) {
 				if(!Utils.contains(rset.get(p), (MultipListIndividual) bInd)) {
@@ -450,6 +448,7 @@ public class Alg extends MultiSGE {
 			eSel.setRandgen(randgen);
 			eSel.selectEnsemble();
 			bset.set(p, eSel.getEnsemble());
+			eSel = null;
 			
 			//Clear rest of sets
 			pset.get(p).clear();
@@ -477,8 +476,8 @@ public class Alg extends MultiSGE {
 		//	The probability is higher in last generations and lower in earlier
 		if(bestEnsemble != null) {
 			for(IIndividual ind : bestEnsemble.inds) {
-				if(!Utils.contains(allInds, (MultipListIndividual)ind)) {
-					if(randgen.coin((generation*1.0)/maxOfGenerations)) {
+				if(randgen.coin((generation*1.0)/maxOfGenerations)) {
+					if(!Utils.contains(allInds, (MultipListIndividual)ind)) {
 						allInds.add(ind.copy());
 					}
 				}
@@ -494,12 +493,17 @@ public class Alg extends MultiSGE {
 		
 		Ensemble currentEnsemble = new Ensemble(eSel.getEnsemble(), learner);
 		currentEnsemble.setTableClassifiers(tableClassifiers);
+		
+		//Object no longer used
+		eSel = null;
+		
 		try {
 			currentEnsemble.build(fullTrainData);
 
 			//Evaluate ensemble
 			EnsembleEval eEval = new EnsembleEval(currentEnsemble, fullTrainData);
 			currentEnsembleFitness = eEval.evaluate();
+			eEval = null;
 				
 			System.out.println("Fitness iter " + generation + ": " + currentEnsembleFitness);
 			//System.out.println("currentEnsemble  votes: " + Arrays.toString(eSel.labelVotes));
@@ -520,6 +524,8 @@ public class Alg extends MultiSGE {
 		/*
 		 * If applicable, communicate subpops
 		 */
+		MultipListIndividual currInd, newInd;
+		int sp, r;
 		switch (commType) {
 		case no:
 			//Do nothing
@@ -530,9 +536,7 @@ public class Alg extends MultiSGE {
 			 * For the better individuals in the ensemble, try to copy to other subpopulations
 			 * The probability of copy is biased by their position in the ensemble
 			 */
-			MultipListIndividual currInd, newInd;
-			int sp, r;
-			int subpopSize = bset.get(0).size();
+			
 			double exp10 = Math.exp(10);
 			
 			for(int i=0; i<currentEnsemble.inds.size(); i++) {
@@ -567,6 +571,9 @@ public class Alg extends MultiSGE {
 				}
 			}
 			
+			currInd = null;
+			newInd = null;
+			
 			//Evaluate new individuals
 			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
 			
@@ -577,6 +584,7 @@ public class Alg extends MultiSGE {
 					eSel.setRandgen(randgen);
 					eSel.selectEnsemble();
 					bset.set(i, eSel.getEnsemble());
+					eSel = null;
 				}
 			}
 				
@@ -588,9 +596,6 @@ public class Alg extends MultiSGE {
 			 * These operator changes the subpopulations of the individuals
 			 */
 			
-			//Size of subpop
-			subpopSize = bset.get(0).size();
-			
 			//New created individuals
 			ArrayList<MultipListIndividual> newInds = new ArrayList<MultipListIndividual>();
 			IIndividual ind1, ind2;
@@ -599,7 +604,7 @@ public class Alg extends MultiSGE {
 			
 			//Try for each individual
 			for(int p=0; p<numSubpop; p++) {
-				for(int i=0; i<bset.get(p).size(); i++) {
+				for(int i=0; i<subpopSize; i++) {
 					//Try crossover
 					if(randgen.coin(probCrossComm)) {
 						ind1 = bset.get(p).get(i);
@@ -611,6 +616,10 @@ public class Alg extends MultiSGE {
 						MultipListIndividual [] crossed = ((Crossover)recombinator.getDecorated()).recombineInds((MultipListIndividual)ind1, (MultipListIndividual)ind2);
 						newInds.add(crossed[0]);
 						newInds.add(crossed[1]);
+						
+						crossed = null;
+						ind1 = null;
+						ind2 = null;
 					}
 					
 					if(randgen.coin(probMutComm)) {
@@ -618,6 +627,8 @@ public class Alg extends MultiSGE {
 						
 						//Mutate individual
 						newInds.add(subpopMut.mutateInd((MultipListIndividual)ind1, numSubpop, randgen));
+						
+						ind1 = null;
 					}
 				}
 			}
@@ -642,6 +653,8 @@ public class Alg extends MultiSGE {
 				}
 			}
 			
+			newInds = null;
+			
 			//Evaluate new individuals
 			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
 			
@@ -653,6 +666,7 @@ public class Alg extends MultiSGE {
 					eSel.setRandgen(randgen);
 					eSel.selectEnsemble();
 					bset.set(p, eSel.getEnsemble());
+					eSel = null;
 				}
 			}
 			
@@ -667,7 +681,7 @@ public class Alg extends MultiSGE {
 	{
 		System.out.println("Generation " + generation);
 		
-		if ((generation % generationsComm) == 0 && generation > 0) {
+		if ((generation % generationsComm) == 0) {
 			doCommunication();
 		}
 		

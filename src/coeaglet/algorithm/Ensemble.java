@@ -51,6 +51,11 @@ public class Ensemble extends MultiLabelMetaLearner {
 	 * Classifiers built so far
 	 */
 	Hashtable<String, MultiLabelLearner> tableClassifiers;
+	
+	/**
+	 * Fitness of the ensemble
+	 */
+	double fitness;
 
 	
 	/**
@@ -60,10 +65,12 @@ public class Ensemble extends MultiLabelMetaLearner {
 	 */
 	public Ensemble(MultiLabelLearner baseLearner) {
 		super(baseLearner);
+		
+		fitness = -1;
 	}
 
 	/**
-	 * Constructor with individuals.
+	 * Constructor with individuals and learner.
 	 * 
 	 * @param inds Individuals to form the ensemble
 	 * @param baseLearner Multi-label base learner
@@ -78,6 +85,8 @@ public class Ensemble extends MultiLabelMetaLearner {
 		}
 		
 		nClassifiers = inds.size();
+		
+		fitness = -1;
 	}
 
 	/**
@@ -98,6 +107,15 @@ public class Ensemble extends MultiLabelMetaLearner {
 		}
 	}
 	
+	/**
+	 * Setter for fitness
+	 * 
+	 * @param fitness Fitness value computed by EnsembleEval
+	 */
+	public void setFitness(double fitness) {
+		this.fitness = fitness;
+	}
+	
 	@Override
 	/**
 	 * Creates an array of MultiLabelLearners, i.e., the ensemble.
@@ -110,8 +128,7 @@ public class Ensemble extends MultiLabelMetaLearner {
 		//Ensemble members should be already in the table
 		ensemble = new MultiLabelLearner[nClassifiers];
 		for(int i=0; i<nClassifiers; i++) {
-			String s = ((MultipListIndividual)inds.get(i)).getGenotype().toString();
-			ensemble[i] = tableClassifiers.get(s);
+			ensemble[i] = tableClassifiers.get(((MultipListIndividual)inds.get(i)).getGenotype().toString());
 		}
 		
 	}
@@ -127,11 +144,12 @@ public class Ensemble extends MultiLabelMetaLearner {
 		double [] sumVotes = new double[numLabels];
 		double [] sumConf = new double[numLabels];
 		int [] nVotes = new int[numLabels];
-
+		MultiLabelOutput subsetMLO;
+		
 		int index;
 		for(int i=0; i<nClassifiers; i++) {
 			//Predict
-			MultiLabelOutput subsetMLO = ensemble[i].makePrediction(instance);
+			subsetMLO = ensemble[i].makePrediction(instance);
 			index = 0;
 			for(int j : inds.get(i).getGenotype().genotype) {
 				sumVotes[j] += subsetMLO.getBipartition()[index] ? 1 : 0;
@@ -140,6 +158,9 @@ public class Ensemble extends MultiLabelMetaLearner {
 				index ++;
 			}
 		}
+		
+		//Not ever more used
+		subsetMLO = null;
 		
 		boolean[] bipartition = new boolean[numLabels];
 		double[] conf = new double[numLabels];
@@ -168,11 +189,17 @@ public class Ensemble extends MultiLabelMetaLearner {
 	 * @return Number of pruned members
 	 */
 	public int prune(MultiLabelInstances mlData) {
+		//Number of pruned members
 		int nPruned = 0;
 		
+		//Current ensemble should have been already evaluated
+		double bestFitness = fitness;
+		
+		//Evaluator
 		EnsembleEval eEval = new EnsembleEval(this, mlData);
-		double bestFitness = eEval.evaluate();
 		double currFitness;
+		
+		//Individual to remove at each iteration
 		MultipListIndividual toRemove;
 		
 		try {
@@ -197,8 +224,15 @@ public class Ensemble extends MultiLabelMetaLearner {
 		     	}
 	     	}
 	     	
-	     	//Finally, re-built with final members
+	     	//Object no longer used
+	     	eEval = null;
+	     	toRemove = null;
+	     	
+	     	//Finally, re-build with final members
 	     	this.build(mlData);
+	     	
+	     	//Fitness of the current ensemble should be bestFitness
+	     	fitness = bestFitness;
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -257,9 +291,15 @@ public class Ensemble extends MultiLabelMetaLearner {
 			}
 		    
 		}
+		
 		return(predictions);		
 	}	
 	
+	/**
+	 * Get the votes for each label in the ensemble
+	 * 
+	 * @return Array with number of votes for each label
+	 */
 	public int[] getLabelVotes() {
 		int [] labelVotes = new int[numLabels];
 		

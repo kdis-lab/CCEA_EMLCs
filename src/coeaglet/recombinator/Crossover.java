@@ -52,6 +52,8 @@ public class Crossover extends MultipListRecombinator {
 		//Add individuals to buffer
 		sonsBuffer.add(s[0]);
 		sonsBuffer.add(s[1]);
+		
+		s = null;
 	}
 	
 	/**
@@ -111,6 +113,10 @@ public class Crossover extends MultipListRecombinator {
 				newSet1.add(i);
 				newSet2.add(i);
 			}
+			
+			set1 = null;
+			set2 = null;
+			repeated = null;
 					
 			//Sort new sets
 			Collections.sort(newSet1);
@@ -119,6 +125,9 @@ public class Crossover extends MultipListRecombinator {
 			//Create new individuals with new sets
 			MultipListIndividual s1 = new MultipListIndividual(new MultipListGenotype(p1.getGenotype().subpop, newSet1));
 			MultipListIndividual s2 = new MultipListIndividual(new MultipListGenotype(p2.getGenotype().subpop, newSet2));
+			
+			newSet1 = null;
+			newSet2 = null;
 			
 			newInds[0] = s1;
 			newInds[1] = s2;

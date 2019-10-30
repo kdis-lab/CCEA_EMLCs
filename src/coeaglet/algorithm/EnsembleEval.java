@@ -6,7 +6,6 @@ import java.util.List;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.MulanEnsembleEvaluator;
-import mulan.evaluation.measure.ExampleBasedAccuracy;
 import mulan.evaluation.measure.ExampleBasedFMeasure;
 import mulan.evaluation.measure.Measure;
 
@@ -27,7 +26,6 @@ public class EnsembleEval {
 	 * Ensemble to evaluate
 	 */
 	Ensemble ensemble;
-	
 	
 	/**
 	 * Constructor
@@ -68,6 +66,9 @@ public class EnsembleEval {
 			
 			results = eval.evaluate(ensemble, mlData, measures);
 			fitness = results.getMeasures().get(0).getValue();
+			
+			ensemble.setFitness(fitness);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

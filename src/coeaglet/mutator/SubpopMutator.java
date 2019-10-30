@@ -91,6 +91,7 @@ public class SubpopMutator extends MultipListMutator {
 		}while(r == currentSubpop);
 		
 		MultipListIndividual mutInd = new MultipListIndividual(new MultipListGenotype(r, gen));
+		
 		return mutInd;
 	}
 	
