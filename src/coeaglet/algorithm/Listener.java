@@ -101,6 +101,9 @@ public class Listener implements IAlgorithmListener, IConfigure {
 	 */	
 	protected File reportDirectory;
 	
+	/**
+	 * Filename for iteration report
+	 */
 	String iterEnsembleFilename = "iterEnsemble.rep";
 
 	

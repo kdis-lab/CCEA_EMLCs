@@ -209,5 +209,31 @@ public class Utils {
 
 		return -1;
 	}
+	
+	/**
+	 * Transform a list of Integers into an int[] array
+	 * 
+	 * @param list List of integer
+	 * @return Array of ints
+	 */
+	public static int[] toArray(List<Integer> list) {
+		int [] array = new int[list.size()];
+		
+		for(int i=0; i<list.size(); i++) {
+			array[i] = list.get(i);
+		}
+		
+		return array;
+	}
+	
+	public static IIndividual randomIndDifferentSubpop(List<List<IIndividual>> pop, int avoidSubpop, IRandGen randgen) {
+		//Select subpopulation
+		int sp;
+		do {
+			sp = randgen.choose(0, pop.size());
+		}while(sp == avoidSubpop);
+		
+		return pop.get(sp).get(randgen.choose(0, pop.get(sp).size()));
+	}
 
 }

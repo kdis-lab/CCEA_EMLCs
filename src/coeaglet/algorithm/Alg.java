@@ -1,7 +1,6 @@
 package coeaglet.algorithm;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 
@@ -9,6 +8,8 @@ import org.apache.commons.configuration.Configuration;
 
 import coeaglet.individualCreator.FrequencyBasedIndividualCreator;
 import coeaglet.mutator.Mutator;
+import coeaglet.mutator.SubpopMutator;
+import coeaglet.recombinator.Crossover;
 import coeaglet.utils.Utils;
 import coeaglet.utils.Utils.CommunicationType;
 import coeaglet.utils.Utils.EvalType;
@@ -20,6 +21,7 @@ import net.sf.jclec.IIndividual;
 import net.sf.jclec.algorithm.classic.MultiSGE;
 import net.sf.jclec.fitness.SimpleValueFitness;
 import net.sf.jclec.listind.MultipListCreator;
+import net.sf.jclec.listind.MultipListGenotype;
 import net.sf.jclec.listind.MultipListIndividual;
 import net.sf.jclec.selector.BettersSelector;
 import net.sf.jclec.selector.WorsesSelector;
@@ -405,57 +407,200 @@ public class Alg extends MultiSGE {
 	 */
 	protected void doCommunication() 
 	{
-		if((generation % generationsComm == 0) && (generation > 0)) {
-			//Join all individuals of all subpopulations
-			List<IIndividual> allInds = new ArrayList<IIndividual>();
-			for(int p=0; p<numSubpop; p++) {
-				allInds.addAll(bset.get(p));
-			}
+		/*
+		 * First, build ensemble
+		 */
+		//Join all individuals of all subpopulations
+		List<IIndividual> allInds = new ArrayList<IIndividual>();
+		for(int p=0; p<numSubpop; p++) {
+			allInds.addAll(bset.get(p));
+		}
 			
-			//Add individuals of the best ensemble with a probability
-			//	The probability is higher in last generations and lower in earlier
-			if(bestEnsemble != null) {
-				for(IIndividual ind : bestEnsemble.inds) {
-					if(!Utils.contains(allInds, (MultipListIndividual)ind)) {
-						if(randgen.coin((generation*1.0)/maxOfGenerations)) {
-							allInds.add(ind.copy());
+		//Add individuals of the best ensemble with a probability
+		//	The probability is higher in last generations and lower in earlier
+		if(bestEnsemble != null) {
+			for(IIndividual ind : bestEnsemble.inds) {
+				if(!Utils.contains(allInds, (MultipListIndividual)ind)) {
+					if(randgen.coin((generation*1.0)/maxOfGenerations)) {
+						allInds.add(ind.copy());
+					}
+				}
+			}
+		}
+			
+		//Create ensemble considering all individuals
+		EnsembleSelection eSel = new EnsembleSelection(allInds, nClassifiers, nLabels, betaEnsembleSelection);
+		eSel.setRandgen(randgen);
+		eSel.selectEnsemble();
+		LabelPowerset2 learner = new LabelPowerset2(new J48());
+		((LabelPowerset2)learner).setSeed(1);
+		
+		Ensemble currentEnsemble = new Ensemble(eSel.getEnsemble(), learner);
+		currentEnsemble.setTableClassifiers(tableClassifiers);
+		try {
+			currentEnsemble.build(fullTrainData);
+
+			//Evaluate ensemble
+			EnsembleEval eEval = new EnsembleEval(currentEnsemble, fullTrainData);
+			double eFitness = eEval.evaluate();
+				
+			System.out.println("Fitness iter " + generation + ": " + eFitness);
+			//System.out.println("currentEnsemble  votes: " + Arrays.toString(eSel.labelVotes));
+			
+			if(eFitness > bestFitness) {
+				System.out.println("\tNew best fitness!");
+				System.out.println(currentEnsemble);
+				bestEnsemble = currentEnsemble;
+				bestFitness = eFitness;
+			}
+				
+			System.out.println();
+				
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		/*
+		 * If applicable, communicate subpops
+		 */
+		switch (commType) {
+		case no:
+			//Do nothing
+			break;
+			
+		case exchange:
+			/*
+			 * For the better individuals in the ensemble, try to copy to other subpopulations
+			 * The probability of copy is biased by their position in the ensemble
+			 */
+			MultipListIndividual currInd, newInd;
+			int sp, r;
+			int subpopSize = bset.get(0).size();
+			double exp10 = Math.exp(10);
+			
+			for(int i=0; i<currentEnsemble.inds.size(); i++) {
+				//Probability to be selected is lower as it is deeper in the ensemble
+				//It is calculated as an exponential;
+					//It is transformed into an exponential in range [0-10] given its good shape and slope.
+				double prob = Math.exp(10 * ((1.0*nClassifiers - i)/nClassifiers)) / exp10;
+
+				if(randgen.coin(prob)) {
+					currInd = currentEnsemble.inds.get(i);
+					
+					//Select subpop different to the current one
+					sp = currInd.getSubpop();
+					do {
+						r = randgen.choose(0, numSubpop);
+					}while(r == sp);
+					
+					//Individual with same list of genotype, but different subpopulation
+					newInd = new MultipListIndividual(new MultipListGenotype(r, new ArrayList<Integer>(currInd.getGenotype().genotype)));
+					
+					//If it has been evaluated yet at any moment
+						//Probability to be included again is reduced with generations
+					//If not, just include
+					if(tableFitness.containsKey(newInd.getGenotype().toString())) {
+						if(randgen.coin( 1 - ((generation*1.0) / maxOfGenerations) )) {
+							bset.get(r).add(newInd);
 						}
+					}
+					else {
+						bset.get(r).add(newInd);
 					}
 				}
 			}
 			
-			//Create ensemble considering all individuals
-			EnsembleSelection eSel = new EnsembleSelection(allInds, nClassifiers, nLabels, betaEnsembleSelection);
-			eSel.setRandgen(randgen);
-			eSel.selectEnsemble();
-			LabelPowerset2 learner = new LabelPowerset2(new J48());
-			((LabelPowerset2)learner).setSeed(1);
+			//Evaluate new individuals
+			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
 			
-			Ensemble currentEnsemble = new Ensemble(eSel.getEnsemble(), learner);
-			currentEnsemble.setTableClassifiers(tableClassifiers);
-			try {
-				currentEnsemble.build(fullTrainData);
-				
-				System.out.println(currentEnsemble);
-				
-				//Evaluate ensemble
-				EnsembleEval eEval = new EnsembleEval(currentEnsemble, fullTrainData);
-				double eFitness = eEval.evaluate();
-				
-				System.out.println("Fitness iter " + generation + ": " + eFitness);
-				System.out.println("currentEnsemble  votes: " + Arrays.toString(eSel.labelVotes));
-				
-				if(eFitness > bestFitness) {
-					System.out.println("\tNew best fitness!");
-					bestEnsemble = currentEnsemble;
-					bestFitness = eFitness;
+			//Select new individuals for subpopulations
+			for(int i=0; i<numSubpop; i++) {
+				if(bset.get(i).size() > subpopSize) {
+					eSel = new EnsembleSelection(bset.get(i), subpopSize, nLabels, betaUpdatePop);
+					eSel.setRandgen(randgen);
+					eSel.selectEnsemble();
+					bset.set(i, eSel.getEnsemble());
 				}
-				
-				System.out.println();
-				
-			} catch (Exception e) {
-				e.printStackTrace();
 			}
+				
+			break;
+			
+		case operators:
+			/*
+			 * Each individual is applied specific crossover or mutation given a probability
+			 * These operator changes the subpopulations of the individuals
+			 */
+			
+			//Size of subpop
+			subpopSize = bset.get(0).size();
+			
+			//New created individuals
+			ArrayList<MultipListIndividual> newInds = new ArrayList<MultipListIndividual>();
+			IIndividual ind1, ind2;
+			
+			SubpopMutator subpopMut = new SubpopMutator();
+			
+			//Try for each individual
+			for(int p=0; p<numSubpop; p++) {
+				for(int i=0; i<bset.get(p).size(); i++) {
+					//Try crossover
+					if(randgen.coin(probCrossComm)) {
+						ind1 = bset.get(p).get(i);
+						
+						//Select random ind for other subpop
+						ind2 = Utils.randomIndDifferentSubpop(bset, ((MultipListIndividual)ind1).getSubpop(), randgen);
+					
+						//Cross ind and ind2
+						MultipListIndividual [] crossed = ((Crossover)recombinator.getDecorated()).recombineInds((MultipListIndividual)ind1, (MultipListIndividual)ind2);
+						newInds.add(crossed[0]);
+						newInds.add(crossed[1]);
+					}
+					
+					if(randgen.coin(probMutComm)) {
+						ind1 = bset.get(p).get(i);
+						
+						//Mutate individual
+						newInds.add(subpopMut.mutateInd((MultipListIndividual)ind1, numSubpop, randgen));
+					}
+				}
+			}
+			
+			//Add each new individual to its corresponding subpopulation (if applicable)
+			int currSubpop;
+			for(MultipListIndividual ind : newInds) {
+				currSubpop = ind.getSubpop();
+				
+				//If the individual is not already included in the subpopulation
+				if(!Utils.contains(bset.get(currSubpop), ind)) {
+					//If individual was already evaluated at any moment, include with decreasing probability
+					if(tableFitness.containsKey(ind.getGenotype().toString())) {
+						if(randgen.coin( 1 - ((generation*1.0) / maxOfGenerations) )) {
+							bset.get(currSubpop).add(ind);
+						}
+					}
+					//If never evaluated, include in corresponding subpopulation
+					else {
+						bset.get(currSubpop).add(ind);
+					}
+				}
+			}
+			
+			//Evaluate new individuals
+			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
+			
+			//Select individuals in those subpops with more than allowed individuals
+			for(int p=0; p<numSubpop; p++) {
+				if(bset.get(p).size() > subpopSize) {
+					//Update subpopulation with ensemble selection procedure
+					eSel = new EnsembleSelection(bset.get(p), subpopSize, nLabels, betaUpdatePop);
+					eSel.setRandgen(randgen);
+					eSel.selectEnsemble();
+					bset.set(p, eSel.getEnsemble());
+				}
+			}
+			
+		default:
+			break;
 		}
 	
 	}

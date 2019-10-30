@@ -167,7 +167,12 @@ public class FrequencyBasedIndividualCreator extends MultipListCreator {
 				ArrayList<Integer> gen = ((MultipListIndividual)maxLabelInd).getGenotype().genotype;
 				
 				//Get index of max label
-				int maxIndex = Utils.getMaxIndex(labelAppearances, randgen);
+				int maxIndex = 0;
+				for(int j=1; j<gen.size(); j++) {
+					if(labelAppearances[gen.get(j)] > labelAppearances[maxIndex]) {
+						maxIndex = j;
+					}
+				}
 				
 				//Quit index of max label and add i-th label to genotype
 				labelAppearances[i]++;
