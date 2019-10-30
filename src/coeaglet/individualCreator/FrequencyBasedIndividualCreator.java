@@ -77,6 +77,8 @@ public class FrequencyBasedIndividualCreator extends MultipListCreator {
 		
 		createdBuffer = generateIndividuals(numberOfIndividuals, subpop, appearances, aMin);
 		
+		System.out.println(createdBuffer);
+		
 		// Returns result
 		return createdBuffer;
 	}

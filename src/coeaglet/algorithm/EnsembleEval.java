@@ -6,6 +6,7 @@ import java.util.List;
 import mulan.data.MultiLabelInstances;
 import mulan.evaluation.Evaluation;
 import mulan.evaluation.MulanEnsembleEvaluator;
+import mulan.evaluation.measure.ExampleBasedAccuracy;
 import mulan.evaluation.measure.ExampleBasedFMeasure;
 import mulan.evaluation.measure.Measure;
 

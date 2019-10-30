@@ -429,18 +429,27 @@ public class Alg extends MultiSGE {
 	@Override
 	protected void doUpdate() {
 		for(int p=0; p<numSubpop; p++) {
-			//Add to cset individuals from bset that are not currently included
+			int subpopSize = bset.get(p).size();
+			
+			//Add to rset all individuals from bset
 			for(IIndividual bInd : bset.get(p)) {
-				if(!Utils.contains(cset.get(p), (MultipListIndividual) bInd)) {
-					cset.get(p).add(bInd);
+				if(!Utils.contains(rset.get(p), (MultipListIndividual) bInd)) {
+					rset.get(p).add(bInd);
+				}
+			}
+			
+			//Add to rset individuals from cset that are not already contained
+			for(IIndividual bInd : cset.get(p)) {
+				if(!Utils.contains(rset.get(p), (MultipListIndividual) bInd)) {
+					rset.get(p).add(bInd);
 				}
 			}
 			
 			//Update subpopulation with ensemble selection procedure
-			EnsembleSelection eSel = new EnsembleSelection(cset.get(p), bset.get(p).size(), nLabels, betaUpdatePop);
+			EnsembleSelection eSel = new EnsembleSelection(rset.get(p), subpopSize, nLabels, betaUpdatePop);
 			eSel.setRandgen(randgen);
 			eSel.selectEnsemble();
-			bset.set(p, eSel.getEnsemble());			
+			bset.set(p, eSel.getEnsemble());
 			
 			//Clear rest of sets
 			pset.get(p).clear();
