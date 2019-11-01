@@ -344,10 +344,19 @@ public class Alg extends MultiSGE {
 		case "no":
 			commType = CommunicationType.no;					
 			break;
-		case "exchange":
-			commType = CommunicationType.exchange;
+		case "exchangeEnsemble":
+			commType = CommunicationType.exchangeEnsemble;
 			if(! configuration.containsKey("omega")) {
-				omega = 10;
+				omega = 2;
+			}
+			else {
+				omega = configuration.getDouble("omega");
+			}
+			break;
+		case "exchangeSubpop":
+			commType = CommunicationType.exchangeSubpop;
+			if(! configuration.containsKey("omega")) {
+				omega = 2;
 			}
 			else {
 				omega = configuration.getDouble("omega");
@@ -543,20 +552,19 @@ public class Alg extends MultiSGE {
 			//Do nothing
 			break;
 			
-		case exchange:
+		case exchangeEnsemble:
 			/*
 			 * For the better individuals in the ensemble, try to copy to other subpopulations
 			 * The probability of copy is biased by their position in the ensemble
 			 */
-			
-			double omega = 10;
-			double expO = Math.exp(omega);
+			double prob;
+			int exchanged = 0;
 			
 			for(int i=0; i<currentEnsemble.inds.size(); i++) {
 				//Probability to be selected is lower as it is deeper in the ensemble
-				//It is calculated as an exponential;
-					//It is transformed into an exponential in range [0-10] given its good shape and slope.
-				double prob = Math.exp(omega * ((1.0*nClassifiers - i)/nClassifiers)) / expO;
+				//It is calculated as an exponential (importance ^ omega)
+					//The greater the omega value, the greater the slope, so deeper individuals have less probability
+				prob = Math.pow(((1.0*nClassifiers - i) / nClassifiers), omega);
 
 				if(randgen.coin(prob)) {
 					currInd = currentEnsemble.inds.get(i);
@@ -573,19 +581,118 @@ public class Alg extends MultiSGE {
 					//If it has been evaluated yet at any moment
 						//Probability to be included again is reduced with generations
 					//If not, just include
+					//Only include if not already present in the subpopulation
 					if(tableFitness.containsKey(newInd.getGenotype().toString())) {
 						if(randgen.coin( 1 - ((generation*1.0) / maxOfGenerations) )) {
-							bset.get(r).add(newInd);
+							if(!Utils.contains(bset.get(r), newInd)) {
+								bset.get(r).add(newInd);
+								exchanged++;
+							}
 						}
 					}
 					else {
-						bset.get(r).add(newInd);
+						if(!Utils.contains(bset.get(r), newInd)) {
+							bset.get(r).add(newInd);
+							exchanged++;
+						}
 					}
+				}
+			}
+			
+			System.out.println(exchanged + " exchanged.");
+			
+			currInd = null;
+			newInd = null;
+			
+			//Evaluate new individuals
+			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
+			
+			//Select new individuals for subpopulations
+			for(int i=0; i<numSubpop; i++) {
+				if(bset.get(i).size() > subpopSize) {
+					eSel = new EnsembleSelection(bset.get(i), subpopSize, nLabels, betaUpdatePop);
+					eSel.setRandgen(randgen);
+					eSel.selectEnsemble();
+					bset.set(i, eSel.getEnsemble());
+					eSel = null;
+				}
+			}
+				
+			break;
+			
+		case exchangeSubpop:
+			/*
+			 * For the better individuals in each subpop, try to copy to other subpopulations
+			 * The probability of copy is biased by their position in the ensemble
+			 */
+			exchanged = 0;
+			
+			//Here store the exchanged inds (in order to not modify the bsets until the end)
+			List<List<IIndividual>> exchangedInds = new ArrayList<List<IIndividual>>(numSubpop);
+			for(int i=0; i<numSubpop; i++) {
+				exchangedInds.add(i, new ArrayList<IIndividual>());
+			}
+			
+			//For each subpop
+			for(int p=0; p<numSubpop; p++) {
+				//Each individual of the subpop
+				for(int i=0; i<subpopSize; i++) {
+					//Probability to be selected is lower as it is deeper in the ensemble
+					//It is calculated as an exponential (importance ^ omega)
+						//The greater the omega value, the greater the slope, so deeper individuals have less probability
+					prob = Math.pow(((1.0*nClassifiers - i) / nClassifiers), omega);
+
+					if(randgen.coin(prob)) {
+						currInd = (MultipListIndividual) bset.get(p).get(i);
+						
+						//Select subpop different to the current one
+						sp = currInd.getSubpop();
+						do {
+							r = randgen.choose(0, numSubpop);
+						}while(r == sp);
+						
+						//Individual with same list of genotype, but different subpopulation
+						newInd = new MultipListIndividual(new MultipListGenotype(r, new ArrayList<Integer>(currInd.getGenotype().genotype)));
+						
+						//If it has been evaluated yet at any moment
+							//Probability to be included again is reduced with generations
+						//If not, just include
+						//Also, only include if it is already not in the corresponding subpop nor the exchanged inds
+						if(tableFitness.containsKey(newInd.getGenotype().toString())) {
+							if(randgen.coin( 1 - ((generation*1.0) / maxOfGenerations) )) {
+								if(!Utils.contains(bset.get(r), newInd)) {
+									if(!Utils.contains(exchangedInds.get(r), newInd)) {
+										exchangedInds.get(r).add(newInd);
+										exchanged++;
+									}
+								}
+								
+							}
+						}
+						else {
+							if(!Utils.contains(bset.get(r), newInd)) {
+								if(!Utils.contains(exchangedInds.get(r), newInd)) {
+									exchangedInds.get(r).add(newInd);
+									exchanged++;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			System.out.println(exchanged + " exchanged.");
+			
+			//Add exchanged inds to corresponding subpops
+			for(int p=0; p<numSubpop; p++) {
+				for(int i=0; i<exchangedInds.get(p).size(); i++) {
+					bset.get(p).add(exchangedInds.get(p).get(i));
 				}
 			}
 			
 			currInd = null;
 			newInd = null;
+			exchangedInds = null;
 			
 			//Evaluate new individuals
 			((MultipAbstractParallelEvaluator)evaluator).evaluateMultip(bset);
