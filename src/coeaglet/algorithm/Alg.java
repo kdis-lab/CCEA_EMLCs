@@ -430,7 +430,7 @@ public class Alg extends MultiSGE {
 		for(int p=0; p<numSubpop; p++) {
 			//Initialize each population
 			((FrequencyBasedIndividualCreator) provider).setSubpopId(p);
-			((FrequencyBasedIndividualCreator) provider).setaMin(3);
+			((FrequencyBasedIndividualCreator) provider).setaMin(1);
 			((FrequencyBasedIndividualCreator) provider).setAppearances(Utils.getAppearances(trainData[p]));
 			bset.add(p, provider.provide(subpopSize));
 			

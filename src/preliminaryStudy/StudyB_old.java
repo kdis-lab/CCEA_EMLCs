@@ -17,7 +17,7 @@ import weka.classifiers.trees.J48;
 import weka.core.Utils;
 
 
-public class StudyB {
+public class StudyB_old {
 	
 	public static void main(String [] args) {
 		
