@@ -344,8 +344,8 @@ public class Alg extends MultiSGE {
 		case "no":
 			commType = CommunicationType.no;					
 			break;
-		case "exchangeEnsemble":
-			commType = CommunicationType.exchangeEnsemble;
+		case "exchangeBestEnsemble":
+			commType = CommunicationType.exchangeBestEnsemble;
 			if(! configuration.containsKey("omega")) {
 				omega = 2;
 			}
@@ -552,7 +552,7 @@ public class Alg extends MultiSGE {
 			//Do nothing
 			break;
 			
-		case exchangeEnsemble:
+		case exchangeBestEnsemble:
 			/*
 			 * For the better individuals in the ensemble, try to copy to other subpopulations
 			 * The probability of copy is biased by their position in the ensemble
@@ -560,14 +560,14 @@ public class Alg extends MultiSGE {
 			double prob;
 			int exchanged = 0;
 			
-			for(int i=0; i<currentEnsemble.inds.size(); i++) {
+			for(int i=0; i<bestEnsemble.inds.size(); i++) {
 				//Probability to be selected is lower as it is deeper in the ensemble
 				//It is calculated as an exponential (importance ^ omega)
 					//The greater the omega value, the greater the slope, so deeper individuals have less probability
 				prob = Math.pow(((1.0*nClassifiers - i) / nClassifiers), omega);
 
 				if(randgen.coin(prob)) {
-					currInd = currentEnsemble.inds.get(i);
+					currInd = bestEnsemble.inds.get(i);
 					
 					//Select subpop different to the current one
 					sp = currInd.getSubpop();

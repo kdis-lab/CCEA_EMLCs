@@ -38,7 +38,7 @@ public class Utils {
 	 *	operators: Specific genetic operators between subpopulations are used to share information.
 	 */
 	public enum CommunicationType{
-		no, exchangeEnsemble, exchangeSubpop, operators,
+		no, exchangeBestEnsemble, exchangeSubpop, operators,
 	};
 	
 	/**

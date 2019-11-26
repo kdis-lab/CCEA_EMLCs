@@ -154,6 +154,7 @@ public class FrequencyBasedIndividualCreator extends MultipListCreator {
 				inds.add(newInd);
 			}
 		}
+
 		
 		//Check if all labels appear at least aMin times
 		int [] labelAppearances = getAppearancesLabels(inds);
