@@ -44,6 +44,7 @@ import mulan.evaluation.measure.MicroFMeasure;
 import mulan.evaluation.measure.MicroPrecision;
 import mulan.evaluation.measure.MicroRecall;
 import mulan.evaluation.measure.MicroSpecificity;
+import mulan.evaluation.measure.ModHammingLoss;
 import mulan.evaluation.measure.OneError;
 import mulan.evaluation.measure.RankingLoss;
 import mulan.evaluation.measure.SubsetAccuracy;
@@ -566,6 +567,7 @@ public class Listener implements IAlgorithmListener, IConfigure {
             if (prediction.hasBipartition()) {
                 // add example-based measures
                 measures.add(new HammingLoss());
+                measures.add(new ModHammingLoss());
                 measures.add(new SubsetAccuracy());
                 measures.add(new ExampleBasedPrecision());
                 measures.add(new ExampleBasedRecall());
